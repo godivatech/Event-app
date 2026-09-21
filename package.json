@@ -11,6 +11,7 @@
     "dev:web": "npm --workspace=apps/web run dev",
     "dev:worker": "npm --workspace=apps/api run start:worker",
     "build:packages": "npm --workspace=packages/contracts run build && npm --workspace=packages/ui run build",
+    "build:contracts": "npm --workspace=packages/contracts run build",
     "build:api": "npm --workspace=apps/api run build",
     "build:web": "npm --workspace=apps/web run build",
     "build": "npm run build:packages && npm run build:api && npm run build:web",
