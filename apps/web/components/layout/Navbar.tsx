@@ -21,26 +21,7 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {/* Navigation Actions */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link
-            href="/recover"
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:text-[#08537B] hover:bg-slate-100 rounded-[10px] transition-colors"
-          >
-            <KeyRound className="w-4 h-4 text-[#EE8518]" />
-            <span className="hidden sm:inline">Find My Booking</span>
-            <span className="sm:hidden">Recover</span>
-          </Link>
-
-          <Link
-            href="/help"
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 hover:text-[#08537B] hover:bg-slate-100 rounded-[10px] transition-colors"
-          >
-            <HelpCircle className="w-4 h-4 text-slate-500" />
-            <span className="hidden md:inline">Help</span>
-          </Link>
-
-          <div className="h-5 w-px bg-slate-200 hidden sm:block" />
-
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link
             href="/scanner/login"
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-[10px] transition-all"
@@ -48,6 +29,14 @@ export const Navbar: React.FC = () => {
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[#08537B]" />
             <span>Staff Portal</span>
+          </Link>
+
+          <Link
+            href="/events/cedoi-summit-2026/tickets"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-[#EE8518] hover:bg-[#d6720f] active:bg-[#ab4e10] rounded-[10px] shadow-sm transition-all"
+          >
+            <Ticket className="w-4 h-4" />
+            <span>Book Tickets</span>
           </Link>
         </div>
       </div>

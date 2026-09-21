@@ -148,12 +148,6 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
                 <span>Select Tickets & Book</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
-
-              <div className="mt-4 text-center">
-                <Link href="/recover" className="text-xs text-slate-500 hover:text-[#08537B] underline">
-                  Already booked? Find your tickets
-                </Link>
-              </div>
             </div>
           </div>
         </div>

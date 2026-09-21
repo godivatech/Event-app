@@ -36,8 +36,8 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/recover" className="hover:text-gray-900 transition-colors">
-                  Recover Lost Booking
+                <Link href="/events/cedoi-summit-2026/tickets" className="hover:text-gray-900 transition-colors">
+                  Book Admission Tickets
                 </Link>
               </li>
               <li>
