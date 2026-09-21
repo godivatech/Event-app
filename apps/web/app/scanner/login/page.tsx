@@ -87,6 +87,7 @@ export default function ScannerLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
                 className="w-full h-11 pl-10 pr-3.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#08537B] focus:border-transparent transition"
               />
             </div>
@@ -103,6 +104,7 @@ export default function ScannerLoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 className="w-full h-11 pl-10 pr-3.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#08537B] focus:border-transparent transition"
               />
             </div>

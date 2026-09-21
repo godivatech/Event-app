@@ -21,10 +21,10 @@ export default function TicketSelectionPage() {
   const [event, setEvent] = useState<PublicEventDto | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('+91');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
-  const [location, setLocation] = useState('Madurai');
+  const [location, setLocation] = useState('');
   const [memberType, setMemberType] = useState<'MEMBER' | 'NON_MEMBER'>('NON_MEMBER');
   const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG'>('VEG');
   const [isLoading, setIsLoading] = useState(true);
@@ -83,10 +83,14 @@ export default function TicketSelectionPage() {
       return;
     }
 
-    if (!customerPhone.trim() || customerPhone.trim().length < 10) {
-      setErrorMessage('Please enter a valid mobile number (e.g. +919876543210).');
+    const digits = customerPhone.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
     }
+    const formattedPhone = customerPhone.trim().startsWith('+')
+      ? customerPhone.trim()
+      : `+91${digits.slice(-10)}`;
 
     if (!customerEmail.trim()) {
       setErrorMessage('Please enter your email address for ticket confirmation.');
@@ -99,7 +103,7 @@ export default function TicketSelectionPage() {
     }
 
     if (!location.trim()) {
-      setErrorMessage('Please enter your city / location.');
+      setErrorMessage('Please enter your city or location.');
       return;
     }
 
@@ -114,7 +118,7 @@ export default function TicketSelectionPage() {
         body: JSON.stringify({
           eventId: event!.id,
           customerName: customerName.trim(),
-          customerPhone: customerPhone.trim(),
+          customerPhone: formattedPhone,
           customerEmail: customerEmail.trim() || undefined,
           businessName: businessName.trim(),
           location: location.trim(),
@@ -220,7 +224,7 @@ export default function TicketSelectionPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Aarav Mehta"
+                  placeholder="Enter your full name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
@@ -234,7 +238,7 @@ export default function TicketSelectionPage() {
                 <input
                   type="tel"
                   required
-                  placeholder="+91 98765 43210"
+                  placeholder="Enter your mobile number"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
@@ -251,7 +255,7 @@ export default function TicketSelectionPage() {
                 <input
                   type="email"
                   required
-                  placeholder="e.g. aarav@acmecorp.com"
+                  placeholder="Enter your email address"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                   className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
@@ -269,7 +273,7 @@ export default function TicketSelectionPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Godiva Tech Solutions"
+                    placeholder="Enter your business or company name"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     className="w-full h-11 pl-10 pr-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
@@ -286,7 +290,7 @@ export default function TicketSelectionPage() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Madurai, Chennai, Coimbatore..."
+                    placeholder="Enter your city or location"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full h-11 pl-10 pr-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"

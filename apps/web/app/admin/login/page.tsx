@@ -98,7 +98,7 @@ export default function AdminLoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#08537B] focus:border-transparent text-sm transition"
-                  placeholder="admin@cedoi.org"
+                  placeholder="Enter your email address"
                 />
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#08537B] focus:border-transparent text-sm transition"
-                  placeholder="••••••••••••"
+                  placeholder="Enter your password"
                 />
               </div>
             </div>

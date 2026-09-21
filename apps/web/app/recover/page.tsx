@@ -82,7 +82,7 @@ export default function RecoverBookingPage() {
             <input
               type="text"
               required
-              placeholder="e.g. BK-20261025-XXXXXX"
+              placeholder="Enter booking reference number"
               value={bookingNumber}
               onChange={(e) => setBookingNumber(e.target.value)}
               className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 font-mono text-sm uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
@@ -96,7 +96,7 @@ export default function RecoverBookingPage() {
             <input
               type="text"
               required
-              placeholder="CEDOI-XXXX-XXXX-XXXX"
+              placeholder="Enter recovery passcode"
               value={recoveryCode}
               onChange={(e) => setRecoveryCode(e.target.value)}
               className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 font-mono text-sm uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"

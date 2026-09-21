@@ -397,7 +397,7 @@ export default function MobileScanPage() {
                 type="text"
                 autoFocus
                 required
-                placeholder="e.g. TKT-20261025-XXXXXX"
+                placeholder="Enter ticket number"
                 value={manualTicketNumber}
                 onChange={(e) => setManualTicketNumber(e.target.value)}
                 className="w-full h-11 px-3.5 rounded-xl bg-white border border-gray-300 text-sm font-mono text-gray-900 placeholder-gray-400 uppercase focus:outline-none focus:ring-2 focus:ring-[#08537B]"
