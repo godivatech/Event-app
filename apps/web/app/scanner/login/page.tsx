@@ -43,7 +43,7 @@ export default function ScannerLoginPage() {
               src="/brand/logo.png"
               alt="CEDOI"
               fill
-              className="object-contain scale-[2.5]"
+              className="object-contain p-1.5"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gate Staff Login</h1>
