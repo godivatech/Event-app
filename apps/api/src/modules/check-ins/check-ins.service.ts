@@ -83,18 +83,27 @@ export class CheckInsService {
       };
     }
 
-    // 2. Locate the ticket by QR hash or ticket number
-    let qrHash: string | undefined;
-    if (qrCredential) {
-      qrHash = CryptoUtil.sha256(qrCredential.trim());
-    }
+    // 2. Locate the ticket by:
+    // a) Direct QR hash or raw token hash (scanned from web screen or PDF)
+    // b) Ticket number (if manual entry or barcode scanned)
+    const cleanCredential = qrCredential?.trim();
+    const cleanTicketNumber = ticketNumber?.trim();
+    const computedQrHash = cleanCredential ? CryptoUtil.sha256(cleanCredential) : undefined;
 
     const ticket = await this.prisma.ticket.findFirst({
       where: {
         OR: [
-          ...(qrHash ? [{ qrCredentialHash: qrHash }] : []),
-          ...(ticketNumber
-            ? [{ ticketNumber: { equals: ticketNumber.trim(), mode: 'insensitive' as const } }]
+          // Direct hash match (web screen QR passes stored qrCredentialHash directly)
+          ...(cleanCredential ? [{ qrCredentialHash: cleanCredential }] : []),
+          // Computed hash match (PDF pass encodes raw token, which hashes to qrCredentialHash)
+          ...(computedQrHash ? [{ qrCredentialHash: computedQrHash }] : []),
+          // Scanned ticket number directly into qrCredential
+          ...(cleanCredential
+            ? [{ ticketNumber: { equals: cleanCredential, mode: 'insensitive' as const } }]
+            : []),
+          // Manual entry ticket number
+          ...(cleanTicketNumber
+            ? [{ ticketNumber: { equals: cleanTicketNumber, mode: 'insensitive' as const } }]
             : []),
         ],
       },
@@ -116,8 +125,8 @@ export class CheckInsService {
       };
     }
 
-    // 3. Validate event match
-    if (ticket.booking.eventId !== eventId) {
+    // 3. Validate event match (if activeEventId is provided by scanner)
+    if (eventId && eventId.trim() && ticket.booking.eventId !== eventId.trim()) {
       return {
         result: CheckInResult.WRONG_EVENT as any,
         message: `This ticket is for a different event (${ticket.booking.event.name}).`,
@@ -146,12 +155,13 @@ export class CheckInsService {
       };
     }
 
-    // Check entry time window: allow entry from 4 hours before startsAt until endsAt
+    // Check entry time window if strictly configured in environment (allow staff testing by default)
+    const enforceWindow = process.env.ENFORCE_ENTRY_WINDOW === 'true';
     const now = new Date();
     const windowStart = new Date(ticket.booking.event.startsAt.getTime() - 4 * 60 * 60 * 1000);
     const windowEnd = new Date(ticket.booking.event.endsAt.getTime() + 2 * 60 * 60 * 1000);
 
-    if (now < windowStart || now > windowEnd) {
+    if (enforceWindow && (now < windowStart || now > windowEnd)) {
       return {
         result: CheckInResult.OUTSIDE_WINDOW as any,
         message: 'Current time is outside the admission window for this event.',

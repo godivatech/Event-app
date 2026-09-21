@@ -43,6 +43,7 @@ storage/
 uploads/
 generated_pdfs/
 exports/
+scratch/
 *.pdf
 *.csv
 
