@@ -29,7 +29,20 @@ async function bootstrap() {
   // CORS configuration
   const appOrigin = process.env.APP_ORIGIN || 'http://localhost:3000';
   app.enableCors({
-    origin: [appOrigin, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      // Allow server-to-server or proxy requests with no origin header
+      if (!origin) return callback(null, true);
+      if (
+        origin === appOrigin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.onrender.com')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'x-guest-session', 'x-razorpay-signature'],
