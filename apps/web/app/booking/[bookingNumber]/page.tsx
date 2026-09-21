@@ -18,8 +18,6 @@ import { FoodPreferenceBadge, MemberTypeBadge } from '@cedoi/ui';
 import {
   ArrowLeft,
   ShieldCheck,
-  Key,
-  Copy,
   Check,
   AlertCircle,
   Loader2,
@@ -37,19 +35,12 @@ export default function BookingReviewAndPaymentPage() {
 
   const [booking, setBooking] = useState<BookingDetailDto | null>(null);
   const [orderData, setOrderData] = useState<RazorpayOrderResponseDto | null>(null);
-  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [razorpayReady, setRazorpayReady] = useState(false);
 
   useEffect(() => {
-    // Read cached recovery code from session stash if available
-    if (typeof window !== 'undefined') {
-      const stashed = sessionStorage.getItem(`recovery_${bookingNumber}`);
-      if (stashed) setRecoveryCode(stashed);
-    }
 
     async function loadData() {
       try {
@@ -77,13 +68,6 @@ export default function BookingReviewAndPaymentPage() {
     loadData();
   }, [bookingNumber, router]);
 
-  const copyRecoveryCode = () => {
-    if (recoveryCode) {
-      navigator.clipboard.writeText(recoveryCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   // Open Official Razorpay Checkout Modal
   const handleOpenRazorpay = () => {
@@ -236,34 +220,6 @@ export default function BookingReviewAndPaymentPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Order Breakdown & Attendee Details */}
           <div className="lg:col-span-7 space-y-6">
-            {/* Essential Recovery Code Box */}
-            {recoveryCode && (
-              <div className="p-5 rounded-[16px] bg-amber-50 border-2 border-amber-300 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Key className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="text-sm font-bold text-amber-900">Your Ticket Recovery Code</h3>
-                    <p className="mt-1 text-xs text-amber-800 leading-relaxed">
-                      Save this unguessable code to access or re-download your passes anytime without logging in:
-                    </p>
-
-                    <div className="mt-3 flex items-center gap-2">
-                      <div className="px-4 py-2 bg-white rounded-[8px] font-mono text-base font-bold text-slate-900 tracking-wider border border-amber-200 select-all">
-                        {recoveryCode}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={copyRecoveryCode}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[8px] bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs font-semibold transition-colors"
-                      >
-                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5 text-amber-900" />}
-                        <span>{copied ? 'Copied!' : 'Copy'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Event & Item Breakdown */}
             <div className="bg-white rounded-[18px] p-6 border border-slate-200 shadow-sm space-y-5">

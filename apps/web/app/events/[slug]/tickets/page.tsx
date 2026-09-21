@@ -58,6 +58,21 @@ export default function TicketSelectionPage() {
     setErrorMessage(null);
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Keep only numeric characters
+    let digits = e.target.value.replace(/\D/g, '');
+    // If user pastes +91 or 91 with full number, strip country code
+    if (digits.startsWith('91') && digits.length > 10) {
+      digits = digits.slice(2);
+    }
+    // Hard-cap at exactly 10 digits
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10);
+    }
+    setCustomerPhone(digits);
+    setErrorMessage(null);
+  };
+
   // Calculate live totals
   let totalTickets = 0;
   let totalPaise = 0;
@@ -84,13 +99,11 @@ export default function TicketSelectionPage() {
     }
 
     const digits = customerPhone.replace(/\D/g, '');
-    if (digits.length < 10) {
+    if (digits.length !== 10) {
       setErrorMessage('Please enter a valid 10-digit mobile number.');
       return;
     }
-    const formattedPhone = customerPhone.trim().startsWith('+')
-      ? customerPhone.trim()
-      : `+91${digits.slice(-10)}`;
+    const formattedPhone = `+91${digits}`;
 
     if (!customerEmail.trim()) {
       setErrorMessage('Please enter your email address for ticket confirmation.');
@@ -127,11 +140,6 @@ export default function TicketSelectionPage() {
           items,
         }),
       });
-
-      // Temporarily stash the recovery code in sessionStorage for immediate review
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(`recovery_${reservation.bookingNumber}`, reservation.recoveryCode);
-      }
 
       // Navigate to Review step
       router.push(`/booking/${reservation.bookingNumber}`);
@@ -235,17 +243,28 @@ export default function TicketSelectionPage() {
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                   Mobile Number <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="Enter your mobile number"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full h-11 px-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Used for SMS updates and instant ticket recovery.
-                </span>
+                <div className="relative flex items-center">
+                  <div className="absolute left-0 inset-y-0 flex items-center pl-3 pr-2.5 border-r border-slate-200 bg-slate-50 rounded-l-[10px] text-xs font-bold text-slate-600 select-none pointer-events-none">
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
+                    required
+                    placeholder="Enter 10-digit mobile number"
+                    value={customerPhone}
+                    onChange={handlePhoneChange}
+                    className="w-full h-11 pl-14 pr-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                  <span>Used for SMS updates & ticket recovery.</span>
+                  <span className={`font-mono font-medium ${customerPhone.length === 10 ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>
+                    {customerPhone.length}/10
+                  </span>
+                </div>
               </div>
 
               <div>
