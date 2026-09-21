@@ -188,29 +188,42 @@ export class TicketsService {
             },
           });
 
-          // Draw Header with CEDOI branding
-          doc.rect(40, 40, 515, 80).fill('#08537B'); // Primary CEDOI blue
+          // Draw Header with crisp white background & brand accent borders
+          doc.rect(40, 40, 515, 80).fill('#FFFFFF');
+          doc.rect(40, 40, 515, 5).fill('#08537B'); // CEDOI Teal Top Band
+          doc.rect(40, 45, 515, 2).fill('#EE8518'); // CEDOI Orange Secondary Stripe
+          doc.rect(40, 40, 515, 80).strokeColor('#CBD5E1').lineWidth(1).stroke();
 
+          // Top Left: Official CEDOI Brand Logo (Placed on white background so brand teal & orange are 100% visible)
           const logoCandidates = [
+            path.resolve(process.cwd(), 'apps/api/assets/Logo_tight.png'),
+            path.resolve(process.cwd(), 'assets/Logo_tight.png'),
+            path.resolve(__dirname, '../../../assets/Logo_tight.png'),
+            path.resolve(__dirname, '../../../../assets/Logo_tight.png'),
+            path.resolve(process.cwd(), 'apps/api/assets/Logo.png'),
             path.resolve(process.cwd(), 'assets/Logo.png'),
-            path.resolve(process.cwd(), 'assets/Logo.jpg'),
+            path.resolve(process.cwd(), '../web/public/brand/logo_tight.png'),
             path.resolve(process.cwd(), '../web/public/brand/logo.png'),
-            path.resolve(process.cwd(), '../web/public/brand/logo.jpg'),
             path.resolve(__dirname, '../../../assets/Logo.png'),
-            path.resolve(__dirname, '../../../assets/Logo.jpg'),
           ];
           const logoPath = logoCandidates.find((p) => fs.existsSync(p));
           if (logoPath) {
             try {
-              doc.image(logoPath, 470, 48, { width: 64, height: 64 });
+              doc.image(logoPath, 56, 52, { width: 155 });
             } catch {
-              // Ignore image embedding error and continue
+              doc.fillColor('#08537B').fontSize(22).font('Helvetica-Bold').text('CEDOI', 56, 54);
+              doc.fillColor('#EE8518').fontSize(9).font('Helvetica-Bold').text('BUILDING OUTSTANDING ENTREPRENEURS', 56, 80);
             }
           }
 
-          doc.fillColor('#FFFFFF').fontSize(24).font('Helvetica-Bold').text('CEDOI', 60, 55);
-          doc.fillColor('#EE8518').fontSize(10).font('Helvetica-Bold').text('BUILDING OUTSTANDING ENTREPRENEURS', 60, 85);
-          doc.fillColor('#D5EBF7').fontSize(9).font('Helvetica').text('Official Digital Event Admission', 60, 100);
+          doc.fillColor('#64748B').fontSize(8.5).font('Helvetica').text('Official Digital Event Admission Pass', 56, 99);
+
+          // Top Right: Admission Badge & Verification Status
+          doc.roundedRect(405, 54, 135, 26, 6).fill('#08537B');
+          doc.fillColor('#FFFFFF').fontSize(10).font('Helvetica-Bold').text('ADMISSION PASS', 405, 62, { align: 'center', width: 135 });
+
+          doc.fillColor('#475569').fontSize(8.5).font('Helvetica-Bold').text(`Pass #${ticket.admissionIndex} of ${booking.tickets.length}`, 405, 85, { align: 'center', width: 135 });
+          doc.fillColor('#059669').fontSize(8).font('Helvetica-Bold').text('• VERIFIED ADMISSION', 405, 98, { align: 'center', width: 135 });
 
           // Card Body
           doc.rect(40, 120, 515, 620).strokeColor('#CBD5E1').lineWidth(1).stroke();
