@@ -14,9 +14,13 @@ export class ApiError extends Error {
   }
 }
 
+export interface ApiClientOptions extends RequestInit {
+  timeoutMs?: number;
+}
+
 export async function apiClient<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiClientOptions = {}
 ): Promise<T> {
   const isServer = typeof window === 'undefined';
   const baseUrl = isServer
@@ -42,14 +46,39 @@ export async function apiClient<T>(
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    credentials: options.credentials || 'include',
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  });
+  // Setup abort controller for robust timeout protection (15 seconds default)
+  const timeoutMs = options.timeoutMs ?? 15000;
+  const controller = new AbortController();
+  const timeoutTimer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      signal: options.signal || controller.signal,
+      credentials: options.credentials || 'include',
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutTimer);
+    if (err.name === 'AbortError') {
+      throw new ApiError({
+        code: 'REQUEST_TIMEOUT',
+        message: 'The server took too long to respond (timeout after 15s). Please check your connection and retry.',
+      });
+    }
+    throw new ApiError({
+      code: 'NETWORK_FAILURE',
+      message: err?.message || 'Network failure communicating with server.',
+    });
+  } finally {
+    clearTimeout(timeoutTimer);
+  }
 
   // If returning raw streaming data (e.g. PDF blob or CSV text), handle directly
   const contentType = response.headers.get('content-type') || '';
@@ -67,13 +96,30 @@ export async function apiClient<T>(
     if (response.status >= 500) {
       throw new ApiError({
         code: 'SERVICE_UNAVAILABLE',
-        message: 'The API server is currently initializing or unreachable. Please verify that port 4000 is running and retry.',
+        message: 'The API server is currently initializing or unreachable. Please verify server status and retry.',
       });
     }
     throw new ApiError({
       code: 'NETWORK_ERROR',
       message: `HTTP Error ${response.status}: Unable to parse server response.`,
     });
+  }
+
+  // Centralized 401 Unauthorized handling
+  if (response.status === 401 || (data as any)?.error?.code === 'UNAUTHENTICATED') {
+    if (!isServer) {
+      try {
+        localStorage.removeItem('cedoi_staff_token');
+      } catch {}
+
+      // Auto-redirect if on protected routes and not on login page
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
+        window.location.replace('/admin/login');
+      } else if (currentPath.startsWith('/scanner') && currentPath !== '/scanner/login') {
+        window.location.replace('/scanner/login');
+      }
+    }
   }
 
   if (!response.ok || !data.success) {

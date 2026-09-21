@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { QrCode, Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
@@ -13,6 +13,22 @@ export default function ScannerLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // If already authenticated with valid token, fast-forward to scanner terminal
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    if (token) {
+      apiClient('api/v1/auth/me', { timeoutMs: 3000 })
+        .then(() => {
+          router.replace('/scanner/scan');
+        })
+        .catch(() => {
+          try {
+            localStorage.removeItem('cedoi_staff_token');
+          } catch {}
+        });
+    }
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -22,14 +38,14 @@ export default function ScannerLoginPage() {
       const res = await apiClient<{ user: any; token: string }>('api/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
+        timeoutMs: 12000,
       });
       if (res?.token && typeof window !== 'undefined') {
         localStorage.setItem('cedoi_staff_token', res.token);
       }
-      router.push('/scanner/scan');
+      window.location.href = '/scanner/scan';
     } catch (err: any) {
       setErrorMessage(err.message || 'Login failed. Check your staff credentials.');
-    } finally {
       setIsLoading(false);
     }
   };

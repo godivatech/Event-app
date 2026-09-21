@@ -48,11 +48,21 @@ export default function ScannerHistoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient<HistoryItem[]>('api/v1/check-in/history');
-      setHistory(data);
+      const data = await apiClient<HistoryItem[]>('api/v1/check-in/history', { timeoutMs: 10000 });
+      setHistory(data || []);
     } catch (err: any) {
-      if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-        router.push('/scanner/login');
+      if (
+        err.code === 'UNAUTHENTICATED' ||
+        err.message?.includes('Authentication required') ||
+        err.message?.includes('401') ||
+        err.message?.includes('Unauthorized')
+      ) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('cedoi_staff_token');
+          } catch {}
+        }
+        router.replace('/scanner/login');
         return;
       }
       setError(err.message || 'Failed to load check-in records.');

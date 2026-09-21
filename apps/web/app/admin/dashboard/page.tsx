@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { AdminDashboardMetricsDto } from '@cedoi/contracts';
 import { formatPaise, VegVectorIcon, NonVegVectorIcon } from '@cedoi/ui';
@@ -22,6 +23,7 @@ import {
 import { AdminDashboardSkeleton } from '../../../components/skeletons';
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [metrics, setMetrics] = useState<AdminDashboardMetricsDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,9 +32,13 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient<AdminDashboardMetricsDto>('api/v1/admin/metrics');
+      const data = await apiClient<AdminDashboardMetricsDto>('api/v1/admin/metrics', { timeoutMs: 12000 });
       setMetrics(data);
     } catch (err: any) {
+      if (err.code === 'UNAUTHENTICATED') {
+        router.replace('/admin/login');
+        return;
+      }
       setError(err.message || 'Failed to load authoritative metrics from database.');
     } finally {
       setLoading(false);

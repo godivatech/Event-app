@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { formatPaise, Skeleton } from '@cedoi/ui';
 import {
@@ -48,6 +49,7 @@ interface AdminEvent {
 }
 
 export default function AdminEventsPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +58,13 @@ export default function AdminEventsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient<AdminEvent[]>('api/v1/events/admin/all');
-      setEvents(data);
+      const data = await apiClient<AdminEvent[]>('api/v1/events/admin/all', { timeoutMs: 12000 });
+      setEvents(data || []);
     } catch (err: any) {
+      if (err.code === 'UNAUTHENTICATED') {
+        router.replace('/admin/login');
+        return;
+      }
       setError(err.message || 'Failed to load events catalog.');
     } finally {
       setLoading(false);

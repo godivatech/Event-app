@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { Shield, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
@@ -13,6 +13,26 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // If already authenticated with valid token, fast-forward to dashboard
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    if (token) {
+      apiClient('api/v1/auth/me', { timeoutMs: 3000 })
+        .then((profile: any) => {
+          if (profile?.role === 'SCANNER') {
+            router.replace('/scanner/scan');
+          } else {
+            router.replace('/admin/dashboard');
+          }
+        })
+        .catch(() => {
+          try {
+            localStorage.removeItem('cedoi_staff_token');
+          } catch {}
+        });
+    }
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -22,14 +42,14 @@ export default function AdminLoginPage() {
       const res = await apiClient<{ user: any; token: string }>('api/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
+        timeoutMs: 12000,
       });
       if (res?.token && typeof window !== 'undefined') {
         localStorage.setItem('cedoi_staff_token', res.token);
       }
-      router.push('/admin/dashboard');
+      window.location.href = '/admin/dashboard';
     } catch (err: any) {
       setError(err.message || 'Invalid administrator credentials. Please try again.');
-    } finally {
       setLoading(false);
     }
   };

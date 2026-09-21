@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '@cedoi/ui';
@@ -43,44 +44,83 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  // If on login page, render children directly without sidebar
+  // If on login page, render children directly without chrome
   const isLoginPage = pathname === '/admin/login';
 
   const [staff, setStaff] = useState<StaffProfileDto | null>(null);
-  const [loading, setLoading] = useState<boolean>(!isLoginPage);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
+    isLoginPage ? 'authenticated' : 'checking'
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [tookTooLong, setTookTooLong] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isLoginPage) return;
+    if (isLoginPage) {
+      setAuthStatus('authenticated');
+      return;
+    }
+
+    // FAST-PATH 1: Synchronous token presence check
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    if (!token) {
+      setAuthStatus('unauthenticated');
+      router.replace('/admin/login');
+      return;
+    }
+
+    // Safety timeout: if auth takes more than 7 seconds, display retry/login option
+    const timer = setTimeout(() => {
+      setTookTooLong(true);
+    }, 7000);
+
+    let isMounted = true;
+    setAuthStatus('checking');
 
     async function checkAuth() {
       try {
-        const profile = await apiClient<StaffProfileDto>('api/v1/auth/me');
+        const profile = await apiClient<StaffProfileDto>('api/v1/auth/me', { timeoutMs: 10000 });
+        if (!isMounted) return;
+
         if (profile.role === UserRole.SCANNER) {
           // Scanner staff cannot access admin console
-          router.push('/scanner/scan');
+          router.replace('/scanner/scan');
           return;
         }
+
         setStaff(profile);
+        setAuthStatus('authenticated');
       } catch (err) {
-        router.push('/admin/login');
+        if (!isMounted) return;
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('cedoi_staff_token');
+          } catch {}
+        }
+        setAuthStatus('unauthenticated');
+        router.replace('/admin/login');
       } finally {
-        setLoading(false);
+        clearTimeout(timer);
       }
     }
+
     checkAuth();
-  }, [isLoginPage, router]);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [pathname, isLoginPage, router]);
 
   const handleLogout = async () => {
     try {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('cedoi_staff_token');
       }
-      await apiClient('api/v1/auth/logout', { method: 'POST' });
+      await apiClient('api/v1/auth/logout', { method: 'POST', timeoutMs: 5000 });
     } catch (e) {
-      // Ignore
+      // Ignore network errors on logout
     } finally {
-      router.push('/admin/login');
+      router.replace('/admin/login');
     }
   };
 
@@ -88,7 +128,19 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  if (loading) {
+  // If unauthenticated, show clean redirecting message
+  if (authStatus === 'unauthenticated') {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F7F7F7] p-4 text-center">
+        <Loader2 className="w-8 h-8 text-[#08537B] animate-spin mb-3" />
+        <h2 className="text-sm font-bold text-gray-800">Authenticating Session...</h2>
+        <p className="text-xs text-gray-500 mt-1">Redirecting to administrator login</p>
+      </div>
+    );
+  }
+
+  // If verifying session, show skeleton with safety timeout fallback
+  if (authStatus === 'checking') {
     return (
       <div className="h-screen overflow-hidden bg-[#F7F7F7] flex flex-col lg:flex-row antialiased">
         {/* Sidebar Skeleton */}
@@ -103,6 +155,7 @@ export default function AdminLayout({
             ))}
           </div>
         </aside>
+
         {/* Main Content Area Skeleton */}
         <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
           <header className="h-16 shrink-0 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
@@ -112,7 +165,22 @@ export default function AdminLayout({
               <Skeleton className="h-4 w-24 rounded" />
             </div>
           </header>
+
           <main className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+            {tookTooLong && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between shadow-xs animate-fadeIn">
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Connecting to backend server is taking longer than expected.</span>
+                </div>
+                <button
+                  onClick={() => router.replace('/admin/login')}
+                  className="px-3 py-1 bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold text-xs transition"
+                >
+                  Return to Login
+                </button>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <Skeleton className="h-8 w-64 rounded-lg" />
               <Skeleton className="h-10 w-32 rounded-xl" />
@@ -129,9 +197,10 @@ export default function AdminLayout({
     );
   }
 
+  // Only reached when authStatus === 'authenticated' and staff is verified
   return (
     <div className="h-screen overflow-hidden bg-[#F7F7F7] text-gray-900 flex flex-col lg:flex-row font-sans antialiased">
-      {/* Sidebar - Desktop (Fixed Height, Stays Pinned on Left, Internal Nav Scroll) */}
+      {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 h-full bg-white border-r border-gray-200 shrink-0 shadow-[1px_0_4px_rgba(0,0,0,0.02)] z-30 select-none">
         {/* Brand Header */}
         <div className="h-16 px-4 border-b border-gray-200 flex items-center shrink-0">
@@ -196,7 +265,7 @@ export default function AdminLayout({
               </div>
               <div className="truncate">
                 <p className="text-xs font-bold text-gray-900 truncate">
-                  {staff?.name}
+                  {staff?.name || 'Administrator'}
                 </p>
                 <p className="text-[10px] text-gray-500 font-medium">
                   {staff?.role}

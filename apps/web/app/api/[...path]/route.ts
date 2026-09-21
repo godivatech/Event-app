@@ -27,6 +27,10 @@ async function handleRequest(req: NextRequest, { params }: { params: { path: str
     }
   });
 
+  // Enforce a strict 15-second upstream timeout to prevent serverless function hangs
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   try {
     let body: any = undefined;
     if (!['GET', 'HEAD'].includes(req.method)) {
@@ -41,31 +45,52 @@ async function handleRequest(req: NextRequest, { params }: { params: { path: str
       headers: forwardHeaders,
       body,
       cache: 'no-store',
+      signal: controller.signal,
       // @ts-ignore
       duplex: body ? 'half' : undefined,
     });
 
+    clearTimeout(timeoutId);
+
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
       const k = key.toLowerCase();
-      if (k !== 'content-encoding' && k !== 'content-length') {
+      if (k !== 'content-encoding' && k !== 'content-length' && k !== 'transfer-encoding') {
         responseHeaders.append(key, value);
       }
     });
 
-    return new NextResponse(response.body, {
+    // Buffer response body safely as arrayBuffer to prevent stream lockups
+    const responseBuffer = await response.arrayBuffer();
+
+    return new NextResponse(responseBuffer, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
     });
   } catch (err: any) {
+    clearTimeout(timeoutId);
+
+    if (err.name === 'AbortError') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'GATEWAY_TIMEOUT',
+            message: `The upstream API server at ${API_TARGET} did not respond within 15 seconds. Please retry shortly.`,
+          },
+        },
+        { status: 504 }
+      );
+    }
+
     console.error(`[Next.js API Proxy Error] ${req.method} ${targetUrl}:`, err?.message, err?.cause || '');
     return NextResponse.json(
       {
         success: false,
         error: {
           code: 'PROXY_CONNECTION_FAILED',
-          message: `Unable to reach backend API at ${API_TARGET}. Details: ${err?.message || 'Connection refused'} (Cause: ${err?.cause?.message || JSON.stringify(err?.cause) || 'none'})`,
+          message: `Unable to reach backend API at ${API_TARGET}. Details: ${err?.message || 'Connection refused'}`,
         },
       },
       { status: 502 }

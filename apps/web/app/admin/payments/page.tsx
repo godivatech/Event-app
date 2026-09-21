@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { formatPaise, formatDateTime, StatusBadge, SkeletonTableRows } from '@cedoi/ui';
 import {
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   Loader2,
   ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface PaymentAttempt {
@@ -40,23 +42,30 @@ interface RefundRecord {
 }
 
 export default function AdminPaymentsPage() {
+  const router = useRouter();
   const [attempts, setAttempts] = useState<PaymentAttempt[]>([]);
   const [refunds, setRefunds] = useState<RefundRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalAttempts, setTotalAttempts] = useState<number>(0);
 
   const fetchPayments = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await apiClient<any>(`api/v1/admin/payments?page=${page}&limit=15`);
+      const res = await apiClient<any>(`api/v1/admin/payments?page=${page}&limit=15`, { timeoutMs: 12000 });
       setAttempts(res.attempts || []);
       setRefunds(res.refunds || []);
       setTotalAttempts(res.total || 0);
       setTotalPages(res.totalPages || 1);
     } catch (err: any) {
-      console.error('Failed to load payments:', err);
+      if (err.code === 'UNAUTHENTICATED') {
+        router.replace('/admin/login');
+        return;
+      }
+      setError(err.message || 'Failed to load payments ledger from database.');
     } finally {
       setLoading(false);
     }
@@ -127,6 +136,23 @@ export default function AdminPaymentsPage() {
             <tbody className="divide-y divide-gray-100 text-gray-700 bg-white">
               {loading && attempts.length === 0 ? (
                 <SkeletonTableRows rows={6} cols={7} />
+              ) : error ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center">
+                    <div className="inline-flex flex-col items-center gap-2 p-5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs max-w-md mx-auto">
+                      <ShieldAlert className="w-6 h-6 text-red-600" />
+                      <span className="font-bold text-sm">Failed to Load Payments</span>
+                      <span className="text-red-700">{error}</span>
+                      <button
+                        onClick={fetchPayments}
+                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-red-100 text-red-800 border border-red-300 rounded-xl font-bold text-xs transition shadow-xs"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Retry Loading
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ) : attempts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-400">

@@ -81,9 +81,16 @@ export default function AdminReportsPage() {
   const handleDownload = async (type: 'sales' | 'tickets' | 'checkins') => {
     setDownloading(type);
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`/api/v1/admin/reports/${type}`, {
         method: 'GET',
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok) {

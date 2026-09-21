@@ -23,17 +23,30 @@ export default function ScannerProfilePage() {
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function loadProfile() {
       try {
-        const data = await apiClient<StaffProfileDto>('api/v1/auth/me');
+        const data = await apiClient<StaffProfileDto>('api/v1/auth/me', { timeoutMs: 8000 });
+        if (!isMounted) return;
         setProfile(data);
       } catch (err) {
-        router.push('/scanner/login');
+        if (!isMounted) return;
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('cedoi_staff_token');
+          } catch {}
+        }
+        router.replace('/scanner/login');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
     loadProfile();
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const handleLogout = async () => {
@@ -42,11 +55,11 @@ export default function ScannerProfilePage() {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('cedoi_staff_token');
       }
-      await apiClient('api/v1/auth/logout', { method: 'POST' });
+      await apiClient('api/v1/auth/logout', { method: 'POST', timeoutMs: 5000 });
     } catch (e) {
       // Ignore error during logout
     } finally {
-      router.push('/scanner/login');
+      router.replace('/scanner/login');
     }
   };
 

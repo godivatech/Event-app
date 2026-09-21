@@ -36,25 +36,31 @@ export default function MobileScanPage() {
 
   // 1. Authenticate staff and get event/gate assignment
   useEffect(() => {
+    let isMounted = true;
     async function loadStaffProfile() {
       try {
-        const profile = await apiClient<StaffProfileDto>('api/v1/auth/me');
+        const profile = await apiClient<StaffProfileDto>('api/v1/auth/me', { timeoutMs: 8000 });
+        if (!isMounted) return;
         setStaff(profile);
 
         if (profile.assignedEventIds && profile.assignedEventIds.length > 0) {
           setActiveEventId(profile.assignedEventIds[0]);
         } else {
           // Default to published summit
-          const events = await apiClient<any[]>('api/v1/events');
-          if (events.length > 0) {
+          const events = await apiClient<any[]>('api/v1/events', { timeoutMs: 8000 });
+          if (isMounted && events && events.length > 0) {
             setActiveEventId(events[0].id);
           }
         }
       } catch (err: any) {
-        router.push('/scanner/login');
+        if (!isMounted) return;
+        router.replace('/scanner/login');
       }
     }
     loadStaffProfile();
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   // 2. Start Camera Feed
