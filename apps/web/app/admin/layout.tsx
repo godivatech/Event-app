@@ -134,23 +134,16 @@ export default function AdminLayout({
       {/* Sidebar - Desktop (Fixed Height, Stays Pinned on Left, Internal Nav Scroll) */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 h-full bg-white border-r border-gray-200 shrink-0 shadow-[1px_0_4px_rgba(0,0,0,0.02)] z-30 select-none">
         {/* Brand Header */}
-        <div className="h-16 px-5 border-b border-gray-200 flex items-center justify-between shrink-0">
-          <Link href="/admin/dashboard" className="flex items-center gap-3">
-            <div className="relative w-9 h-9 overflow-hidden shrink-0 flex items-center justify-center">
+        <div className="h-16 px-4 border-b border-gray-200 flex items-center shrink-0">
+          <Link href="/admin/dashboard" className="flex items-center w-full group">
+            <div className="relative h-12 w-48 overflow-hidden flex items-center">
               <Image
                 src="/brand/logo.png"
                 alt="CEDOI"
                 fill
-                className="object-contain scale-[2.2]"
+                priority
+                className="object-contain object-left scale-[2.5] origin-left"
               />
-            </div>
-            <div>
-              <span className="font-extrabold text-sm tracking-tight text-gray-900 block leading-tight">
-                CEDOI ADMIN
-              </span>
-              <span className="text-[10px] font-bold text-[#08537B] tracking-wider uppercase">
-                MANAGEMENT
-              </span>
             </div>
           </Link>
         </div>
