@@ -194,7 +194,7 @@ export default function BookingReviewAndPaymentPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col min-h-screen bg-slate-50 w-full overflow-x-hidden">
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         onLoad={() => setRazorpayReady(true)}
@@ -202,7 +202,7 @@ export default function BookingReviewAndPaymentPage() {
 
       <Navbar />
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="flex-1 max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 w-full overflow-x-hidden">
         <StepIndicator currentStep={2} />
 
         <div className="text-center max-w-xl mx-auto mb-6">

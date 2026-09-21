@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,13 +10,19 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full scroll-smooth">
+    <html lang="en" className="h-full scroll-smooth overflow-x-hidden">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -25,7 +31,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="flex flex-col min-h-screen">
+      <body className="flex flex-col min-h-screen overflow-x-hidden w-full max-w-full">
         {children}
       </body>
     </html>

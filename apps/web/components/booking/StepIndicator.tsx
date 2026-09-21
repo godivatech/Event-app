@@ -41,7 +41,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
                 {isCompleted ? <Check className="w-4 h-4" /> : step.number}
               </div>
               <span
-                className={`mt-1.5 text-xs font-semibold whitespace-nowrap ${
+                className={`mt-1.5 text-[10px] sm:text-xs font-semibold whitespace-nowrap ${
                   isCurrent
                     ? 'text-[#08537B]'
                     : isCompleted

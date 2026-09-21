@@ -6,10 +6,10 @@ import { HelpCircle, Mail, Phone, ShieldCheck, Key, Ticket, AlertTriangle } from
 
 export default function HelpPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col min-h-screen bg-slate-50 w-full overflow-x-hidden">
       <Navbar />
 
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 w-full overflow-x-hidden">
         <div className="text-center max-w-xl mx-auto mb-10">
           <div className="w-12 h-12 rounded-full bg-[#08537B]/10 text-[#08537B] flex items-center justify-center mx-auto mb-3">
             <HelpCircle className="w-6 h-6" />

@@ -11,6 +11,13 @@
     --foreground: #0F172A;
   }
 
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans min-h-screen selection:bg-[#08537B]/10 selection:text-[#08537B];
   }
