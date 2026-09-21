@@ -1,0 +1,485 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SCANNER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+  COMPLETED
+}
+
+enum TicketTypeStatus {
+  ACTIVE
+  INACTIVE
+  SOLD_OUT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+  CANCELLATION_PENDING
+  CANCELLED
+  PAYMENT_EXCEPTION
+}
+
+enum ReservationStatus {
+  HELD
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+enum PaymentAttemptStatus {
+  CREATED
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+}
+
+enum RefundStatus {
+  REQUESTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  UNKNOWN
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  SUSPENDED
+  CANCELLED
+}
+
+enum CheckInResult {
+  SUCCESS
+  ALREADY_USED
+  INVALID
+  CANCELLED
+  WRONG_EVENT
+  OUTSIDE_WINDOW
+}
+
+enum PdfArtifactStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum OutboxJobType {
+  PDF_GENERATION
+  RESERVATION_EXPIRY
+  PAYMENT_RECONCILIATION
+  REPORT_GENERATION
+}
+
+enum OutboxJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  role         UserRole    @default(SCANNER)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  sessions     Session[]
+  assignments  EventStaffAssignment[]
+  checkIns     CheckIn[]
+
+  @@index([role, isActive])
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model Event {
+  id            String       @id @default(uuid())
+  slug          String       @unique
+  name          String
+  tagline       String?
+  description   String       @db.Text
+  venue         String
+  address       String
+  startsAt      DateTime
+  endsAt        DateTime
+  timezone      String       @default("Asia/Kolkata")
+  status        EventStatus  @default(DRAFT)
+  bannerUrl     String?
+  totalCapacity Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  ticketTypes   TicketType[]
+  gates         Gate[]
+  bookings      Booking[]
+  assignments   EventStaffAssignment[]
+  checkIns      CheckIn[]
+
+  @@index([status, startsAt])
+}
+
+model Gate {
+  id          String   @id @default(uuid())
+  eventId     String
+  name        String
+  code        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assignments EventStaffAssignment[]
+  checkIns    CheckIn[]
+
+  @@unique([eventId, code])
+}
+
+model EventStaffAssignment {
+  id        String    @id @default(uuid())
+  eventId   String
+  userId    String
+  gateId    String?
+  role      UserRole
+  createdAt DateTime  @default(now())
+
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gate      Gate?     @relation(fields: [gateId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+}
+
+model TicketType {
+  id             String           @id @default(uuid())
+  eventId        String
+  name           String
+  description    String?          @db.Text
+  unitPricePaise Int
+  capacity       Int
+  maxPerBooking  Int              @default(10)
+  sortOrder      Int              @default(0)
+  status         TicketTypeStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  event          Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bookingItems   BookingItem[]
+  reservationItems ReservationItem[]
+  tickets        Ticket[]
+
+  @@index([eventId, status, sortOrder])
+}
+
+model Booking {
+  id                     String         @id @default(uuid())
+  bookingNumber          String         @unique
+  eventId                String
+  customerName           String
+  customerPhone          String
+  customerEmail          String?
+  businessName           String?
+  location               String?
+  memberType             String         @default("NON_MEMBER")
+  foodPreference         String         @default("VEG")
+  currency               String         @default("INR")
+  subtotalPaise          Int
+  totalPaise             Int
+  status                 BookingStatus  @default(PENDING)
+  reservationExpiresAt   DateTime?
+  recoveryCodeHash       String
+  guestSessionTokenHash  String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  event                  Event          @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  items                  BookingItem[]
+  reservation            Reservation?
+  paymentAttempts        PaymentAttempt[]
+  refunds                Refund[]
+  tickets                Ticket[]
+  pdfArtifact            PdfArtifact?
+  accessSessions         TicketAccessSession[]
+
+  @@index([eventId, status])
+  @@index([customerPhone])
+  @@index([createdAt])
+  @@index([bookingNumber])
+  @@index([memberType])
+  @@index([foodPreference])
+}
+
+model BookingItem {
+  id             String      @id @default(uuid())
+  bookingId      String
+  ticketTypeId   String
+  quantity       Int
+  unitPricePaise Int
+  lineTotalPaise Int
+  createdAt      DateTime    @default(now())
+
+  booking        Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ticketType     TicketType  @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  tickets        Ticket[]
+
+  @@index([bookingId])
+}
+
+model Reservation {
+  id         String            @id @default(uuid())
+  bookingId  String            @unique
+  expiresAt  DateTime
+  status     ReservationStatus @default(HELD)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  booking    Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  items      ReservationItem[]
+
+  @@index([status, expiresAt])
+}
+
+model ReservationItem {
+  id            String      @id @default(uuid())
+  reservationId String
+  ticketTypeId  String
+  quantity      Int
+  createdAt     DateTime    @default(now())
+
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  ticketType    TicketType  @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+
+  @@index([reservationId])
+  @@index([ticketTypeId])
+}
+
+model PaymentAttempt {
+  id               String               @id @default(uuid())
+  bookingId        String
+  attemptNumber    Int                  @default(1)
+  razorpayOrderId  String?              @unique
+  razorpayPaymentId String?             @unique
+  razorpaySignature String?
+  amountPaise      Int
+  currency         String               @default("INR")
+  status           PaymentAttemptStatus @default(CREATED)
+  failureReason    String?
+  metadata         Json?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  booking          Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  refunds          Refund[]
+
+  @@index([bookingId, status])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+}
+
+model Refund {
+  id                String       @id @default(uuid())
+  bookingId         String
+  paymentAttemptId  String?
+  amountPaise       Int
+  reason            String
+  status            RefundStatus @default(REQUESTED)
+  razorpayRefundId  String?      @unique
+  actorId           String?
+  internalReference String       @unique
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  booking           Booking      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  paymentAttempt    PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, status])
+  @@index([internalReference])
+}
+
+model Ticket {
+  id                String       @id @default(uuid())
+  bookingId         String
+  bookingItemId     String
+  ticketTypeId      String
+  admissionIndex    Int
+  ticketNumber      String       @unique
+  qrCredentialHash  String       @unique
+  encryptedQrToken  String       @db.Text
+  attendeeName      String?
+  attendeeEmail     String?
+  attendeePhone     String?
+  businessName      String?
+  location          String?
+  memberType        String       @default("NON_MEMBER")
+  foodPreference    String       @default("VEG")
+  status            TicketStatus @default(ACTIVE)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  booking           Booking      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  bookingItem       BookingItem  @relation(fields: [bookingItemId], references: [id], onDelete: Restrict)
+  ticketType        TicketType   @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  checkIns          CheckIn[]
+
+  @@unique([bookingItemId, admissionIndex])
+  @@index([bookingId])
+  @@index([qrCredentialHash])
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([memberType])
+  @@index([foodPreference])
+}
+
+model CheckIn {
+  id          String        @id @default(uuid())
+  ticketId    String
+  eventId     String
+  gateId      String?
+  staffUserId String
+  requestId   String        @unique
+  result      CheckInResult
+  notes       String?
+  checkedInAt DateTime      @default(now())
+
+  ticket      Ticket        @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  event       Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  gate        Gate?         @relation(fields: [gateId], references: [id], onDelete: SetNull)
+  staffUser   User          @relation(fields: [staffUserId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@index([eventId, checkedInAt])
+  @@index([staffUserId])
+  @@index([requestId])
+}
+
+model TicketAccessSession {
+  id        String   @id @default(uuid())
+  bookingId String
+  tokenHash String
+  expiresAt DateTime
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, tokenHash])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model PdfArtifact {
+  id            String            @id @default(uuid())
+  bookingId     String            @unique
+  status        PdfArtifactStatus @default(PENDING)
+  fileUrl       String?
+  filePath      String?
+  fileSizeBytes Int?
+  errorMessage  String?
+  generatedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  booking       Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorType  String
+  action     String
+  entityType String
+  entityId   String?
+  eventId    String?
+  requestId  String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([eventId])
+  @@index([createdAt])
+}
+
+model OutboxJob {
+  id          String          @id @default(uuid())
+  jobType     OutboxJobType
+  payload     Json
+  status      OutboxJobStatus @default(PENDING)
+  retryCount  Int             @default(0)
+  maxRetries  Int             @default(5)
+  lastError   String?
+  scheduledAt DateTime        @default(now())
+  processedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([jobType, status])
+}
+
+model ProcessedWebhook {
+  id          String   @id @default(uuid())
+  eventId     String   @unique
+  eventType   String
+  payloadHash String
+  status      String
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  recipient String
+  channel   String
+  type      String
+  status    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}

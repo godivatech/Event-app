@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #08537B;
+    --brand-accent: #EE8518;
+    --brand-dark: #031E2D;
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased font-sans min-h-screen selection:bg-[#08537B]/10 selection:text-[#08537B];
+  }
+
+  /* Custom high-visibility accessible focus rings */
+  :focus-visible {
+    @apply outline-none ring-2 ring-[#08537B] ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .text-brand-gradient {
+    @apply bg-gradient-to-r from-[#08537B] via-[#064364] to-[#EE8518] bg-clip-text text-transparent;
+  }
+
+  .brand-hero-bg {
+    background: radial-gradient(circle at top right, rgba(238, 133, 24, 0.08), transparent 40%),
+                radial-gradient(circle at top left, rgba(8, 83, 123, 0.08), transparent 50%),
+                #F8FAFC;
+  }
+}
+
+/* Print Styles for Tickets and Receipts */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+
+  header, footer, nav, .no-print {
+    display: none !important;
+  }
+
+  .print-page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+}

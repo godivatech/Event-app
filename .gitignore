@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# NestJS / TypeScript
+dist/
+*.tsbuildinfo
+
+# Environment files - strictly ignore all .env variants across all folders
+.env
+.env*
+.env.*
+*.env
+*.env.*
+!.env.example
+
+# Keys, secrets, certificates & tokens
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+id_rsa*
+
+# Databases & local caches
+*.db
+*.sqlite
+*.sqlite3
+dump.rdb
+
+# Storage / Artifacts
+storage/
+uploads/
+generated_pdfs/
+exports/
+*.pdf
+*.csv
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# OS & Build Tools
+.DS_Store
+Thumbs.db
+.turbo/
+

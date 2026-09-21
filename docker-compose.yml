@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 18 Relational Database (Authoritative Source of Truth)
+  postgres:
+    image: postgres:16-alpine
+    container_name: cedoi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Postgres@123
+      POSTGRES_DB: cedoi_event_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cedoi_event_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis 7 In-Memory Queue (BullMQ Async Worker Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: cedoi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 3. NestJS API Service (Modular Monolith)
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: cedoi-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      APP_ORIGIN: http://localhost:3000
+      API_INTERNAL_URL: http://api:4000
+      DATABASE_URL: postgresql://postgres:Postgres%40123@postgres:5432/cedoi_event_db?schema=public
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: cedoi_secret_auth_session_key_min_32_characters_long_2026
+      TICKET_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_cedoi123456}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-mock_secret_key_for_test_mode}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-mock_webhook_secret_cedoi_test}
+      PDF_STORAGE_DIR: /app/storage/pdfs
+    volumes:
+      - pdf_storage:/app/storage/pdfs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 4. Background Processing Worker
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: cedoi-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:Postgres%40123@postgres:5432/cedoi_event_db?schema=public
+      REDIS_URL: redis://redis:6379
+      TICKET_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      PDF_STORAGE_DIR: /app/storage/pdfs
+    volumes:
+      - pdf_storage:/app/storage/pdfs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 5. Next.js Web Frontend (Customer Portal, Admin Console & Mobile Scanner)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: cedoi-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  pdf_storage:

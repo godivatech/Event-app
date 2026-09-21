@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 90" width="440" height="90">
+  <defs>
+    <linearGradient id="cedoiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#08537B" />
+      <stop offset="100%" stop-color="#053752" />
+    </linearGradient>
+  </defs>
+  <!-- Mark Symbol Icon -->
+  <rect x="10" y="15" width="56" height="56" rx="14" fill="url(#cedoiGrad)" />
+  <circle cx="38" cy="31" r="9" fill="#EE8518" />
+  <path d="M22 59 C22 47, 54 47, 54 59" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" fill="none" />
+  <path d="M46 22 L54 14" stroke="#EE8518" stroke-width="4" stroke-linecap="round" />
+  
+  <!-- CEDOI Brand Wordmark -->
+  <text x="80" y="52" font-family="Inter, -apple-system, sans-serif" font-weight="900" font-size="38" fill="#08537B" letter-spacing="1">CEDOI</text>
+  
+  <!-- Tagline -->
+  <text x="82" y="70" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="10.5" fill="#EE8518" letter-spacing="1.2">BUILDING OUTSTANDING ENTREPRENEURS</text>
+  
+  <!-- Clearly Labelled Dev Fallback Badge -->
+  <rect x="230" y="24" width="135" height="18" rx="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1" />
+  <text x="238" y="36" font-family="Inter, -apple-system, sans-serif" font-weight="600" font-size="8.5" fill="#64748B" letter-spacing="0.5">DEV FALLBACK ASSET</text>
+</svg>
