@@ -146,12 +146,6 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
               {metrics ? formatPaise(metrics.financials.grossCollectionsPaise) : '₹0'}
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-              <span>Captured Payments</span>
-              <span className="text-emerald-700 font-bold font-mono">
-                Net: {metrics ? formatPaise(metrics.financials.netCollectionsPaise) : '₹0'}
-              </span>
-            </div>
           </div>
         </div>
 
@@ -171,10 +165,6 @@ export default function AdminDashboardPage() {
               <span className="text-sm font-normal text-gray-400 ml-1">
                 / {metrics?.tickets.totalCapacity.toLocaleString()}
               </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-              <span>Capacity Sold</span>
-              <span className="text-[#08537B] font-bold">{soldRate}%</span>
             </div>
           </div>
         </div>
@@ -196,10 +186,6 @@ export default function AdminDashboardPage() {
                 / {metrics?.tickets.totalSold.toLocaleString()}
               </span>
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-              <span>Gate Turnout</span>
-              <span className="text-[#EE8518] font-bold">{checkInRate}%</span>
-            </div>
           </div>
         </div>
 
@@ -216,12 +202,6 @@ export default function AdminDashboardPage() {
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-gray-900 tracking-tight">
               {metrics?.tickets.totalAvailable.toLocaleString()}
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-              <span>Temporary Holds:</span>
-              <span className="text-purple-700 font-bold font-mono">
-                {metrics?.tickets.totalReserved} HELD
-              </span>
             </div>
           </div>
         </div>
