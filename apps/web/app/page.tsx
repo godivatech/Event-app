@@ -185,7 +185,7 @@ export default async function HomePage() {
         <section className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Official Delegate Event Pass
+              Official Event Pass
             </h2>
             <p className="mt-2 text-xs sm:text-sm text-slate-500">
               Transparent, all-inclusive pass with guaranteed seating, gourmet dining, and celebration benefits.
@@ -201,10 +201,10 @@ export default async function HomePage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-[#EE8518]">
-                    All-Inclusive Delegate Pass
+                    All-Inclusive Pass
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    Delegate Event Pass
+                    Event Pass
                   </h3>
                 </div>
               </div>

@@ -150,7 +150,7 @@ async function main() {
   const memberType = await prisma.ticketType.upsert({
     where: { id: `${event.id}-member-pass` },
     update: {
-      name: 'Delegate Admission Pass',
+      name: 'Event Pass',
       description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
@@ -159,7 +159,7 @@ async function main() {
     create: {
       id: `${event.id}-member-pass`,
       eventId: event.id,
-      name: 'Delegate Admission Pass',
+      name: 'Event Pass',
       description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
