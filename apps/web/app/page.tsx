@@ -154,7 +154,7 @@ export default async function HomePage() {
                   href={`/events/${eventSlug}/tickets`}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all group text-center"
                 >
-                  <span>Book Member Pass (₹1,499)</span>
+                  <span>Book Tickets</span>
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform shrink-0" />
                 </Link>
 
@@ -250,7 +250,7 @@ export default async function HomePage() {
                 href={`/events/${eventSlug}/tickets`}
                 className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-[#08537B] hover:bg-[#064262] text-white text-sm font-bold shadow-md transition-all"
               >
-                <span>Select & Register Pass</span>
+                <span>Book Tickets</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
