@@ -58,6 +58,41 @@ export default function TicketSelectionPage() {
         data.ticketTypes.forEach((tt) => {
           initialQty[tt.id] = 0;
         });
+
+        // Restore form draft from sessionStorage if user previously filled it
+        if (typeof window !== 'undefined') {
+          try {
+            const savedDraft = sessionStorage.getItem(`cedoi_ticket_draft_${slug}`);
+            if (savedDraft) {
+              const parsed = JSON.parse(savedDraft);
+              if (parsed.customerName) setCustomerName(parsed.customerName);
+              if (parsed.customerPhone) setCustomerPhone(parsed.customerPhone);
+              if (parsed.customerEmail) setCustomerEmail(parsed.customerEmail);
+              if (parsed.businessName) setBusinessName(parsed.businessName);
+              if (parsed.location) setLocation(parsed.location);
+              if (parsed.age) setAge(parsed.age);
+              if (parsed.memberType === 'MEMBER' || parsed.memberType === 'NON_MEMBER') {
+                setMemberType(parsed.memberType);
+              }
+              if (parsed.foodPreference === 'VEG' || parsed.foodPreference === 'NON_VEG') {
+                setFoodPreference(parsed.foodPreference);
+              }
+              if (typeof parsed.agreedToTerms === 'boolean') {
+                setAgreedToTerms(parsed.agreedToTerms);
+              }
+              if (parsed.quantities && typeof parsed.quantities === 'object') {
+                Object.keys(parsed.quantities).forEach((k) => {
+                  if (initialQty[k] !== undefined) {
+                    initialQty[k] = parsed.quantities[k];
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+
         setQuantities(initialQty);
       } catch (err: any) {
         setErrorMessage(err.message || 'Failed to load event details.');
@@ -67,6 +102,41 @@ export default function TicketSelectionPage() {
     }
     loadEvent();
   }, [slug]);
+
+  // Auto-save form draft to sessionStorage whenever any field changes
+  useEffect(() => {
+    if (isLoading || typeof window === 'undefined') return;
+    try {
+      const draft = {
+        quantities,
+        customerName,
+        customerPhone,
+        customerEmail,
+        businessName,
+        location,
+        age,
+        memberType,
+        foodPreference,
+        agreedToTerms,
+      };
+      sessionStorage.setItem(`cedoi_ticket_draft_${slug}`, JSON.stringify(draft));
+    } catch (e) {
+      // Storage error safeguard
+    }
+  }, [
+    isLoading,
+    slug,
+    quantities,
+    customerName,
+    customerPhone,
+    customerEmail,
+    businessName,
+    location,
+    age,
+    memberType,
+    foodPreference,
+    agreedToTerms,
+  ]);
 
   const handleQuantityChange = (ticketTypeId: string, qty: number) => {
     setQuantities((prev) => ({
@@ -206,6 +276,15 @@ export default function TicketSelectionPage() {
           items,
         }),
       });
+
+      // Clear saved draft upon successful reservation creation
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem(`cedoi_ticket_draft_${slug}`);
+        } catch (e) {
+          // Ignore
+        }
+      }
 
       // Navigate to Review step
       router.push(`/booking/${reservation.bookingNumber}`);
@@ -652,7 +731,7 @@ export default function TicketSelectionPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Reserving Inventory...</span>
+                  <span>Booking Your Pass...</span>
                 </>
               ) : totalTickets === 0 ? (
                 <>
