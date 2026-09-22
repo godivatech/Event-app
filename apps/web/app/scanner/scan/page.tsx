@@ -20,12 +20,16 @@ import {
   UserCheck,
   QrCode,
   Shield,
+  Upload,
+  SwitchCamera,
+  ImageIcon,
 } from 'lucide-react';
 
 export default function MobileScanPage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [staff, setStaff] = useState<StaffProfileDto | null>(null);
   const [activeEventId, setActiveEventId] = useState<string>('');
@@ -37,6 +41,7 @@ export default function MobileScanPage() {
   const [hasTorch, setHasTorch] = useState<boolean>(false);
   const [torchOn, setTorchOn] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isRetryingCamera, setIsRetryingCamera] = useState<boolean>(false);
 
   const [manualTicketNumber, setManualTicketNumber] = useState<string>('');
   const [showManualModal, setShowManualModal] = useState<boolean>(false);
@@ -124,56 +129,14 @@ export default function MobileScanPage() {
     [isMuted]
   );
 
-  // 3. Start Camera Feed (with hardware detection & iOS compatibility)
-  const startCamera = useCallback(
-    async (mode: 'environment' | 'user' = facingMode) => {
-      setCameraError(null);
-      stopCamera();
-
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Camera access API is not supported on this browser.');
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: mode },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
-
-        streamRef.current = stream;
-
-        // Inspect track for torch (flashlight) support
-        const track = stream.getVideoTracks()[0];
-        if (track && (track.getCapabilities as any)) {
-          const caps = (track.getCapabilities as any)();
-          setHasTorch(Boolean(caps?.torch));
-        }
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute('playsinline', 'true');
-          await videoRef.current.play();
-          setCameraActive(true);
-        }
-      } catch (err: any) {
-        setCameraError(
-          err.name === 'NotAllowedError'
-            ? 'Camera permission was denied. Please allow camera access in browser settings or use manual lookup.'
-            : `Camera stream inactive (${err.message || 'Access error'}). Use manual lookup below.`
-        );
-        setCameraActive(false);
-      }
-    },
-    [facingMode]
-  );
-
-  const stopCamera = () => {
+  // 3. Stop Active Camera Tracks safely
+  const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {}
+      });
       streamRef.current = null;
     }
     if (videoRef.current) {
@@ -181,12 +144,186 @@ export default function MobileScanPage() {
     }
     setCameraActive(false);
     setTorchOn(false);
-  };
+  }, []);
+
+  // 4. Start Camera Feed (with hardware cooldown, dual-facing fallback & progressive constraints)
+  const startCamera = useCallback(
+    async (mode: 'environment' | 'user' = facingMode) => {
+      setIsRetryingCamera(true);
+      setCameraError(null);
+      stopCamera();
+
+      // Give browser/OS camera driver a 150ms cooldown to release hardware lock
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      try {
+        if (
+          typeof window !== 'undefined' &&
+          !window.isSecureContext &&
+          window.location.hostname !== 'localhost' &&
+          window.location.hostname !== '127.0.0.1'
+        ) {
+          throw new Error('CAMERA_INSECURE_CONTEXT');
+        }
+
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('CAMERA_NOT_SUPPORTED');
+        }
+
+        let stream: MediaStream | null = null;
+        let lastErr: any = null;
+
+        // Progressive constraints hierarchy:
+        // 1. Preferred facingMode with flexible dimensions (works on iOS & Android rear camera)
+        // 2. Preferred facingMode unconstrained
+        // 3. Opposite camera (front/user if rear not available, e.g. laptop webcams)
+        // 4. Any camera video stream supported by the OS
+        // 5. Basic low-res stream fallback
+        const otherMode = mode === 'environment' ? 'user' : 'environment';
+        const attempts: MediaStreamConstraints[] = [
+          { video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+          { video: { facingMode: { ideal: mode } } },
+          { video: { facingMode: { ideal: otherMode } } },
+          { video: true },
+          { video: { width: { ideal: 640 }, height: { ideal: 480 } } },
+        ];
+
+        for (const constraints of attempts) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (stream) break;
+          } catch (err: any) {
+            lastErr = err;
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+              throw err; // Stop trying if user explicitly denied permission
+            }
+          }
+        }
+
+        if (!stream) {
+          throw lastErr || new Error('Could not acquire video stream.');
+        }
+
+        streamRef.current = stream;
+
+        // Inspect track for torch (flashlight) support
+        const track = stream.getVideoTracks()[0];
+        if (track && (track.getCapabilities as any)) {
+          try {
+            const caps = (track.getCapabilities as any)();
+            setHasTorch(Boolean(caps?.torch));
+          } catch {}
+        }
+
+        if (videoRef.current) {
+          const video = videoRef.current;
+          video.srcObject = stream;
+          video.muted = true;
+          video.defaultMuted = true;
+          video.setAttribute('muted', '');
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', '');
+          video.setAttribute('autoplay', '');
+
+          try {
+            video.load();
+          } catch {}
+
+          // Wait for metadata so play() does not reject
+          await new Promise<void>((resolve) => {
+            if (video.readyState >= 2) {
+              resolve();
+            } else {
+              const onLoaded = () => {
+                video.removeEventListener('loadedmetadata', onLoaded);
+                resolve();
+              };
+              video.addEventListener('loadedmetadata', onLoaded);
+              setTimeout(resolve, 800);
+            }
+          });
+
+          try {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              await playPromise;
+            }
+          } catch (playErr) {
+            console.warn('Video play interrupted, retrying on next frame:', playErr);
+            setTimeout(() => {
+              video.play().catch(() => {});
+            }, 150);
+          }
+          setCameraActive(true);
+          setCameraError(null);
+        }
+      } catch (err: any) {
+        if (err.message === 'CAMERA_INSECURE_CONTEXT') {
+          setCameraError(
+            'Mobile browsers require HTTPS to open live camera. When testing over Wi-Fi, please use Snap/Upload QR Photo or Manual Ticket Entry below.'
+          );
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setCameraError(
+            'Camera permission was blocked. Please tap the lock/camera icon in your address bar to allow Camera, then tap Retry Camera.'
+          );
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          setCameraError(
+            'Camera is currently in use or locked by another app (Zoom, Teams, or browser tab). Please close other camera apps and tap Retry Camera.'
+          );
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setCameraError('No camera found on this device. Please use Snap/Upload QR Photo or Manual Ticket Entry.');
+        } else {
+          setCameraError(
+            `Camera stream inactive (${err.message || 'Access error'}). Please tap Retry Camera, switch camera, or snap a photo.`
+          );
+        }
+        setCameraActive(false);
+      } finally {
+        setIsRetryingCamera(false);
+      }
+    },
+    [facingMode, stopCamera]
+  );
 
   const toggleCameraFacing = () => {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
     startCamera(next);
+  };
+
+  // Direct native photo snapshot / image file QR decoder (Works 100% on any device)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new (window as any).Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, img.width, img.height);
+        const code = jsQR(imgData.data, img.width, img.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (code && code.data) {
+          handleDetectedQr(code.data);
+        } else {
+          setScanResult({
+            result: CheckInResult.INVALID,
+            message: 'No QR code could be detected in this photo. Please ensure clear lighting and try again or use manual entry.',
+            isDuplicateRequest: false,
+          });
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const toggleTorch = async () => {
@@ -447,15 +584,24 @@ export default function MobileScanPage() {
             type="button"
             onClick={toggleCameraFacing}
             title="Flip camera (front / back)"
-            className="p-2 rounded-xl bg-white hover:bg-gray-50 text-gray-600 border border-gray-300 shadow-xs transition"
+            className="p-2 rounded-xl bg-white hover:bg-gray-50 text-gray-600 border border-gray-300 shadow-xs transition cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
+            <SwitchCamera className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Snap photo or upload QR image"
+            className="p-2 rounded-xl bg-white hover:bg-gray-50 text-gray-600 border border-gray-300 shadow-xs transition cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
           </button>
 
           <button
             type="button"
             onClick={() => setShowManualModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#08537B] hover:bg-[#064364] text-white text-xs font-bold shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#08537B] hover:bg-[#064364] text-white text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <Keyboard className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Manual Entry</span>
@@ -468,8 +614,9 @@ export default function MobileScanPage() {
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
-          muted
+          autoPlay
           playsInline
+          muted
         />
 
         {/* Viewfinder Target Overlay */}
@@ -495,21 +642,52 @@ export default function MobileScanPage() {
               <Camera className="w-7 h-7" />
             </div>
             <h3 className="text-base font-bold text-gray-900 mb-1">Camera Stream Inactive</h3>
-            <p className="text-xs text-gray-500 max-w-xs mb-5 leading-relaxed">{cameraError}</p>
-            <div className="flex gap-2.5">
+            <p className="text-xs text-gray-500 max-w-sm mb-5 leading-relaxed">{cameraError}</p>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-md">
               <button
                 type="button"
                 onClick={() => startCamera(facingMode)}
-                className="px-4 py-2 bg-white hover:bg-gray-50 text-xs font-semibold rounded-xl border border-gray-300 shadow-xs text-gray-700 transition"
+                disabled={isRetryingCamera}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 disabled:opacity-60 text-xs font-semibold rounded-xl border border-gray-300 shadow-xs text-gray-700 transition cursor-pointer"
               >
-                Retry Camera
+                {isRetryingCamera ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#08537B]" />
+                    <span>Opening Camera...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
+                    <span>Retry Camera</span>
+                  </>
+                )}
               </button>
+
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 text-xs font-semibold rounded-xl border border-gray-300 shadow-xs text-gray-700 transition cursor-pointer"
+              >
+                <SwitchCamera className="w-3.5 h-3.5 text-gray-500" />
+                <span>Switch to {facingMode === 'environment' ? 'Front' : 'Rear'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-300 shadow-xs transition cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Snap / Upload QR</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowManualModal(true)}
-                className="px-4 py-2 bg-[#08537B] hover:bg-[#064364] text-xs font-bold text-white rounded-xl shadow-xs transition"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#08537B] hover:bg-[#064364] text-xs font-bold text-white rounded-xl shadow-xs transition cursor-pointer"
               >
-                Manual Ticket Entry
+                <Keyboard className="w-3.5 h-3.5" />
+                <span>Manual Entry</span>
               </button>
             </div>
           </div>
@@ -692,6 +870,16 @@ export default function MobileScanPage() {
           </div>
         </div>
       )}
+
+      {/* Hidden file input for native camera snapshot / photo upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
     </div>
   );
 }

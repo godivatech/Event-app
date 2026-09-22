@@ -40,11 +40,11 @@ async function main() {
 
   const eventAdmin = await prisma.user.upsert({
     where: { email: 'admin@cedoi.org' },
-    update: { passwordHash: defaultPasswordHash, isActive: true },
+    update: { name: 'Kavitha Murugan (Event Operations)', passwordHash: defaultPasswordHash, isActive: true },
     create: {
       email: 'admin@cedoi.org',
       passwordHash: defaultPasswordHash,
-      name: 'Priya Sharma (Event Operations)',
+      name: 'Kavitha Murugan (Event Operations)',
       role: UserRole.ADMIN,
       isActive: true,
     },
@@ -52,11 +52,11 @@ async function main() {
 
   const scannerStaff = await prisma.user.upsert({
     where: { email: 'scanner@cedoi.org' },
-    update: { passwordHash: defaultPasswordHash, isActive: true },
+    update: { name: 'Karthik Raja (Gate Staff)', passwordHash: defaultPasswordHash, isActive: true },
     create: {
       email: 'scanner@cedoi.org',
       passwordHash: defaultPasswordHash,
-      name: 'Rohan Verma (Gate Staff)',
+      name: 'Karthik Raja (Gate Staff)',
       role: UserRole.SCANNER,
       isActive: true,
     },
@@ -194,9 +194,9 @@ async function main() {
       data: {
         bookingNumber: sampleBookingNumber,
         eventId: event.id,
-        customerName: 'Aarav Mehta',
+        customerName: 'Senthil Nathan',
         customerPhone: '+919876543210',
-        customerEmail: 'aarav.mehta@example.com',
+        customerEmail: 'senthil.nathan@example.com',
         currency: 'INR',
         subtotalPaise: 250000,
         totalPaise: 250000,

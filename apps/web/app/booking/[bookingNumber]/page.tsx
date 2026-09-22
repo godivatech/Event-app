@@ -331,10 +331,10 @@ export default function BookingReviewAndPaymentPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-slate-600 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#08537B] shrink-0" />
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    <strong>18+ Age Verified:</strong> All delegates must present matching government photo ID at the entrance gate.
+                    <strong>18+ Age Verified:</strong> Age eligibility confirmed for this booking.
                   </span>
                 </div>
               </div>

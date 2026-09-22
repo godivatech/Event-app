@@ -89,8 +89,7 @@ export default function TermsAndConditionsPage() {
             <p className="mt-1 text-xs sm:text-sm text-amber-900 leading-relaxed">
               Admission to CEDOI Awards 2026 is <strong>strictly restricted to individuals aged 18 years and older</strong>.
               Minors, children, and infants are not permitted inside the conference halls, award ceremonies, or banquet areas.
-              All delegates must carry a valid government-issued photo ID (Aadhaar, Driving License, Passport, or Voter ID) for
-              verification at security gates. Passes purchased for individuals under 18 will be denied entry without refund.
+              Passes purchased for individuals under 18 will be denied entry without refund.
             </p>
           </div>
         </div>
@@ -105,7 +104,7 @@ export default function TermsAndConditionsPage() {
               </div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <UserCheck className="w-5 h-5 text-[#08537B]" />
-                <span>Eligibility, Registration & Age Verification</span>
+                <span>Eligibility, Registration & Age Policy</span>
               </h2>
             </div>
             <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2 pl-11">
@@ -119,8 +118,7 @@ export default function TermsAndConditionsPage() {
                 violation of admission rules.
               </p>
               <p>
-                1.3. Gate security staff reserve the right to request government-issued physical or DigiLocker photo identification
-                (such as Aadhaar card, PAN card, Driving License, or Passport) to verify delegate age and identity.
+                1.3. Gate security staff reserve the right to verify delegate eligibility and age at the venue gate.
               </p>
             </div>
           </section>

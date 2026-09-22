@@ -290,7 +290,7 @@ export class TicketsService {
           doc.fillColor('#475569').fontSize(8).font('Helvetica').text(
             '1. Each ticket allows exactly one entry. Present this QR code on your mobile screen or printed on paper.\n' +
             '2. Possessing this QR allows admission only; it does not grant booking management permissions.\n' +
-            '3. Please carry a valid government-issued photo ID matching the attendee.\n' +
+            '3. Admission is strictly for delegates aged 18 years and above.\n' +
             '4. Tickets are non-transferable and non-refundable once the event begins.',
             75,
             642,
