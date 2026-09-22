@@ -92,7 +92,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
               </div>
 
               <div className="mt-8 pt-6 border-t border-slate-100">
-                <h2 className="text-base font-bold text-slate-900 mb-3">About the Summit</h2>
+                <h2 className="text-base font-bold text-slate-900 mb-3">About the Event & Awards Celebration</h2>
                 <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                   {event.description}
                 </p>

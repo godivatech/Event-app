@@ -43,7 +43,7 @@ export class EventsService {
   }
 
   async getEventBySlug(slug: string): Promise<PublicEventDto> {
-    const event = await this.prisma.event.findUnique({
+    let event = await this.prisma.event.findUnique({
       where: { slug },
       include: {
         ticketTypes: {
@@ -52,6 +52,20 @@ export class EventsService {
         },
       },
     });
+
+    // Fallback: If slug not found or legacy summit slug requested, load published event
+    if (!event) {
+      event = await this.prisma.event.findFirst({
+        where: { status: EventStatus.PUBLISHED },
+        include: {
+          ticketTypes: {
+            where: { status: TicketTypeStatus.ACTIVE },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+        orderBy: { startsAt: 'asc' },
+      });
+    }
 
     if (!event) {
       throw new NotFoundException({

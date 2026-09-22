@@ -241,7 +241,7 @@ export default function AdminDashboardPage() {
                   Catering & Meal Headcount
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Real-time lunch buffet counts for Courtyard by Marriott
+                  Real-time celebration banquet lunch headcount
                 </p>
               </div>
             </div>

@@ -64,36 +64,35 @@ async function main() {
 
   console.log('✅ Staff users created/verified');
 
-  // 2. Create Event: CEDOI Entrepreneur Summit 2026
-  const summitStarts = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days in future
-  summitStarts.setUTCHours(3, 30, 0, 0); // 09:00 IST
-  const summitEnds = new Date(summitStarts.getTime() + 9 * 60 * 60 * 1000); // 18:00 IST
+  // 2. Create Event: CEDOI AWARDS 2026
+  const summitStarts = new Date('2026-10-10T03:30:00.000Z'); // Saturday, Oct 10, 2026 09:00 AM IST
+  const summitEnds = new Date('2026-10-10T12:30:00.000Z');   // Saturday, Oct 10, 2026 06:00 PM IST
 
   const event = await prisma.event.upsert({
-    where: { slug: 'cedoi-summit-2026' },
+    where: { slug: 'cedoi-awards-2026' },
     update: {
-      name: 'CEDOI Entrepreneur Summit 2026',
-      tagline: 'BUILDING OUTSTANDING ENTREPRENEURS',
+      name: 'CEDOI AWARDS 2026',
+      tagline: 'RECOGNISE • CELEBRATE • INSPIRE',
       status: EventStatus.PUBLISHED,
       startsAt: summitStarts,
       endsAt: summitEnds,
       timezone: 'Asia/Kolkata',
-      venue: 'Courtyard by Marriott, Madurai',
-      address: '168, Alagar Kovil Main Rd, Tallakulam, Madurai, Tamil Nadu 625002',
-      totalCapacity: 2000,
+      venue: 'Velammal Ida Scudder Auditorium, Madurai',
+      address: 'Velammal Ida Scudder Auditorium, Ring Road, Anuppanadi, Madurai, Tamil Nadu 625009',
+      totalCapacity: 1500,
     },
     create: {
-      slug: 'cedoi-summit-2026',
-      name: 'CEDOI Entrepreneur Summit 2026',
-      tagline: 'BUILDING OUTSTANDING ENTREPRENEURS',
-      description: 'The premier annual summit dedicated to empowering the next generation of founders, visionary leaders, and outstanding entrepreneurs. Features high-impact keynote addresses, founder masterclasses, angel investor networking lounges, and interactive venture showcases.',
-      venue: 'Courtyard by Marriott, Madurai',
-      address: '168, Alagar Kovil Main Rd, Tallakulam, Madurai, Tamil Nadu 625002',
+      slug: 'cedoi-awards-2026',
+      name: 'CEDOI AWARDS 2026',
+      tagline: 'RECOGNISE • CELEBRATE • INSPIRE',
+      description: 'Be a part of the Biggest Entrepreneurship Celebration in Tamilnadu! Join 1,500 business owners for an unforgettable celebration featuring celebrity entertainment, knowledge updates, motivational speeches, gourmet lunch & beverages, ₹10,000 worth discount coupons, and exclusive return gifts & lucky draws.',
+      venue: 'Velammal Ida Scudder Auditorium, Madurai',
+      address: 'Velammal Ida Scudder Auditorium, Ring Road, Anuppanadi, Madurai, Tamil Nadu 625009',
       startsAt: summitStarts,
       endsAt: summitEnds,
       timezone: 'Asia/Kolkata',
       status: EventStatus.PUBLISHED,
-      totalCapacity: 2000,
+      totalCapacity: 1500,
       bannerUrl: '/images/cedoi-summit-banner.jpg',
     },
   });
@@ -103,24 +102,24 @@ async function main() {
   // 3. Create Gates
   const gateA = await prisma.gate.upsert({
     where: { eventId_code: { eventId: event.id, code: 'GATE-A' } },
-    update: { name: 'Main Entrance (South Gate)', isActive: true },
+    update: { name: 'Main Auditorium Entrance', isActive: true },
     create: {
       eventId: event.id,
-      name: 'Main Entrance (South Gate)',
+      name: 'Main Auditorium Entrance',
       code: 'GATE-A',
-      description: 'Primary gate for General Admission attendees',
+      description: 'Primary gate for CEDOI Awards attendees',
       isActive: true,
     },
   });
 
   const gateVip = await prisma.gate.upsert({
     where: { eventId_code: { eventId: event.id, code: 'GATE-VIP' } },
-    update: { name: 'VIP & Speaker Entrance (North Gate)', isActive: true },
+    update: { name: 'VIP & Dignitary Entrance', isActive: true },
     create: {
       eventId: event.id,
-      name: 'VIP & Speaker Entrance (North Gate)',
+      name: 'VIP & Dignitary Entrance',
       code: 'GATE-VIP',
-      description: 'Dedicated gate for VIP and VVIP badge holders',
+      description: 'Dedicated gate for speakers and VIP dignitaries',
       isActive: true,
     },
   });
@@ -147,21 +146,22 @@ async function main() {
     },
   });
 
-  // 4. Ticket Categories
-  // General Admission (Rs. 500 = 50,000 paise), 1500 capacity
-  const generalType = await prisma.ticketType.upsert({
-    where: { id: `${event.id}-general` },
+  // 4. Ticket Categories: Single Ticket Only - Rs. 1,499 (149,900 paise), 1500 capacity
+  const memberType = await prisma.ticketType.upsert({
+    where: { id: `${event.id}-member-pass` },
     update: {
-      unitPricePaise: 50000,
+      name: 'CEDOI Member Pass',
+      description: 'All-inclusive entry for CEDOI members: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
+      unitPricePaise: 149900,
       capacity: 1500,
       status: TicketTypeStatus.ACTIVE,
     },
     create: {
-      id: `${event.id}-general`,
+      id: `${event.id}-member-pass`,
       eventId: event.id,
-      name: 'General Admission',
-      description: 'Full day access to main stage keynotes, venture showcases, and open exhibition floor.',
-      unitPricePaise: 50000,
+      name: 'CEDOI Member Pass',
+      description: 'All-inclusive entry for CEDOI members: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
+      unitPricePaise: 149900,
       capacity: 1500,
       maxPerBooking: 10,
       sortOrder: 1,
@@ -169,49 +169,16 @@ async function main() {
     },
   });
 
-  // VIP Pass (Rs. 1,500 = 150,000 paise), 400 capacity
-  const vipType = await prisma.ticketType.upsert({
-    where: { id: `${event.id}-vip` },
-    update: {
-      unitPricePaise: 150000,
-      capacity: 400,
-      status: TicketTypeStatus.ACTIVE,
-    },
-    create: {
-      id: `${event.id}-vip`,
+  // Hide legacy multi-tier ticket types
+  await prisma.ticketType.updateMany({
+    where: {
       eventId: event.id,
-      name: 'VIP Delegate Pass',
-      description: 'Priority seating in rows 3-10, access to catered networking lunch, and exclusive founder panel sessions.',
-      unitPricePaise: 150000,
-      capacity: 400,
-      maxPerBooking: 5,
-      sortOrder: 2,
-      status: TicketTypeStatus.ACTIVE,
+      name: { in: ['General Admission', 'VIP Delegate Pass', 'VVIP Founder & Investor Pass'] },
     },
+    data: { status: TicketTypeStatus.INACTIVE },
   });
 
-  // VVIP All-Access (Rs. 3,500 = 350,000 paise), 100 capacity
-  const vvipType = await prisma.ticketType.upsert({
-    where: { id: `${event.id}-vvip` },
-    update: {
-      unitPricePaise: 350000,
-      capacity: 100,
-      status: TicketTypeStatus.ACTIVE,
-    },
-    create: {
-      id: `${event.id}-vvip`,
-      eventId: event.id,
-      name: 'VVIP Founder & Investor Pass',
-      description: 'Front-row seating, private VIP lounge access, 1-on-1 investor matchmaking session, and invitation to the evening reception.',
-      unitPricePaise: 350000,
-      capacity: 100,
-      maxPerBooking: 2,
-      sortOrder: 3,
-      status: TicketTypeStatus.ACTIVE,
-    },
-  });
-
-  console.log('✅ Ticket categories seeded (General, VIP, VVIP)');
+  console.log('✅ Ticket category seeded: CEDOI Member Pass (Rs. 1,499)');
 
   // 5. Seed sample completed booking with real tickets for dev inspection
   const sampleBookingNumber = 'BK-20261025-SEED01';

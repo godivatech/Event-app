@@ -212,7 +212,7 @@ export class TicketsService {
               doc.image(logoPath, 56, 52, { width: 155 });
             } catch {
               doc.fillColor('#08537B').fontSize(22).font('Helvetica-Bold').text('CEDOI', 56, 54);
-              doc.fillColor('#EE8518').fontSize(9).font('Helvetica-Bold').text('BUILDING OUTSTANDING ENTREPRENEURS', 56, 80);
+              doc.fillColor('#EE8518').fontSize(9).font('Helvetica-Bold').text('RECOGNISE • CELEBRATE • INSPIRE', 56, 80);
             }
           }
 

@@ -25,7 +25,7 @@ export default function TicketSelectionPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
-  const [memberType, setMemberType] = useState<'MEMBER' | 'NON_MEMBER'>('NON_MEMBER');
+  const [memberType, setMemberType] = useState<'MEMBER' | 'NON_MEMBER'>('MEMBER');
   const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG'>('VEG');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -188,12 +188,25 @@ export default function TicketSelectionPage() {
       <main className="flex-1 max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 w-full overflow-x-hidden">
         <StepIndicator currentStep={1} />
 
+        {/* Members Only Notice Banner */}
+        <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-amber-900">
+          <div className="flex items-center gap-2.5">
+            <Award className="w-5 h-5 text-[#EE8518] shrink-0" />
+            <div className="text-xs sm:text-sm font-bold uppercase tracking-wide">
+              Registration Open for CEDOI Members Only
+            </div>
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#EE8518] text-white shrink-0">
+            Limited Seats!
+          </span>
+        </div>
+
         <div className="text-center max-w-2xl mx-auto mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Select Your Tickets
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            {event.name} • {event.venue || 'Courtyard by Marriott, Madurai'}
+            {event.name} • {event.venue || 'Velammal Ida Scudder Auditorium, Madurai'}
           </p>
         </div>
 
@@ -249,7 +262,7 @@ export default function TicketSelectionPage() {
                 2. Attendee & Delegate Registration Details
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Information used for delegate accreditation, custom event badges, and Marriott catering arrangements.
+                Information used for delegate accreditation, custom event badges, and banquet catering arrangements.
               </p>
             </div>
 
@@ -409,7 +422,7 @@ export default function TicketSelectionPage() {
             {/* Food / Catering Preference */}
             <div className="pt-3 border-t border-slate-100">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                Marriott Buffet Lunch Preference <span className="text-red-500">*</span>
+                Celebration Lunch Banquet Preference <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
@@ -440,7 +453,7 @@ export default function TicketSelectionPage() {
                       )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Full day access to Courtyard by Marriott gourmet vegetarian buffet & high-tea.
+                      Full day access to grand gourmet vegetarian banquet & high-tea refreshments.
                     </p>
                   </div>
                 </button>
@@ -473,7 +486,7 @@ export default function TicketSelectionPage() {
                       )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Full day access to Courtyard by Marriott specialty non-veg delicacies buffet & high-tea.
+                      Full day access to grand specialty non-veg delicacies banquet & high-tea refreshments.
                     </p>
                   </div>
                 </button>
