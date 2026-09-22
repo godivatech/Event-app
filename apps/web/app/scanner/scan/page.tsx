@@ -23,6 +23,9 @@ import {
   Upload,
   SwitchCamera,
   ImageIcon,
+  Lock,
+  Settings,
+  HelpCircle,
 } from 'lucide-react';
 
 export default function MobileScanPage() {
@@ -146,14 +149,36 @@ export default function MobileScanPage() {
     setTorchOn(false);
   }, []);
 
-  // 4. Start Camera Feed (with hardware cooldown, dual-facing fallback & progressive constraints)
+  // 4. Start Camera Feed with comprehensive browser permission diagnostics & recovery
+  const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'unknown'>('unknown');
+
+  // Check browser permission status if API is available
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && (navigator as any).permissions?.query) {
+      (navigator as any).permissions
+        .query({ name: 'camera' })
+        .then((permissionStatus: any) => {
+          setPermissionState(permissionStatus.state);
+          permissionStatus.onchange = () => {
+            setPermissionState(permissionStatus.state);
+            if (permissionStatus.state === 'granted') {
+              startCamera(facingMode);
+            }
+          };
+        })
+        .catch(() => {
+          setPermissionState('unknown');
+        });
+    }
+  }, [facingMode]);
+
   const startCamera = useCallback(
     async (mode: 'environment' | 'user' = facingMode) => {
       setIsRetryingCamera(true);
       setCameraError(null);
       stopCamera();
 
-      // Give browser/OS camera driver a 150ms cooldown to release hardware lock
+      // Give OS hardware and browser media session cooldown
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       try {
@@ -173,12 +198,6 @@ export default function MobileScanPage() {
         let stream: MediaStream | null = null;
         let lastErr: any = null;
 
-        // Progressive constraints hierarchy:
-        // 1. Preferred facingMode with flexible dimensions (works on iOS & Android rear camera)
-        // 2. Preferred facingMode unconstrained
-        // 3. Opposite camera (front/user if rear not available, e.g. laptop webcams)
-        // 4. Any camera video stream supported by the OS
-        // 5. Basic low-res stream fallback
         const otherMode = mode === 'environment' ? 'user' : 'environment';
         const attempts: MediaStreamConstraints[] = [
           { video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -195,7 +214,8 @@ export default function MobileScanPage() {
           } catch (err: any) {
             lastErr = err;
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-              throw err; // Stop trying if user explicitly denied permission
+              setPermissionState('denied');
+              throw err;
             }
           }
         }
@@ -205,8 +225,8 @@ export default function MobileScanPage() {
         }
 
         streamRef.current = stream;
+        setPermissionState('granted');
 
-        // Inspect track for torch (flashlight) support
         const track = stream.getVideoTracks()[0];
         if (track && (track.getCapabilities as any)) {
           try {
@@ -229,7 +249,6 @@ export default function MobileScanPage() {
             video.load();
           } catch {}
 
-          // Wait for metadata so play() does not reject
           await new Promise<void>((resolve) => {
             if (video.readyState >= 2) {
               resolve();
@@ -249,7 +268,7 @@ export default function MobileScanPage() {
               await playPromise;
             }
           } catch (playErr) {
-            console.warn('Video play interrupted, retrying on next frame:', playErr);
+            console.warn('Video play interrupted, retrying:', playErr);
             setTimeout(() => {
               video.play().catch(() => {});
             }, 150);
@@ -259,23 +278,15 @@ export default function MobileScanPage() {
         }
       } catch (err: any) {
         if (err.message === 'CAMERA_INSECURE_CONTEXT') {
-          setCameraError(
-            'Mobile browsers require HTTPS to open live camera. When testing over Wi-Fi, please use Snap/Upload QR Photo or Manual Ticket Entry below.'
-          );
+          setCameraError('INSECURE_CONTEXT');
         } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setCameraError(
-            'Camera permission was blocked. Please tap the lock/camera icon in your address bar to allow Camera, then tap Retry Camera.'
-          );
+          setCameraError('PERMISSION_DENIED');
         } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-          setCameraError(
-            'Camera is currently in use or locked by another app (Zoom, Teams, or browser tab). Please close other camera apps and tap Retry Camera.'
-          );
+          setCameraError('HARDWARE_LOCKED');
         } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          setCameraError('No camera found on this device. Please use Snap/Upload QR Photo or Manual Ticket Entry.');
+          setCameraError('NO_DEVICE');
         } else {
-          setCameraError(
-            `Camera stream inactive (${err.message || 'Access error'}). Please tap Retry Camera, switch camera, or snap a photo.`
-          );
+          setCameraError(err.message || 'GENERAL_ERROR');
         }
         setCameraActive(false);
       } finally {
@@ -635,61 +646,171 @@ export default function MobileScanPage() {
           </div>
         </div>
 
-        {/* Camera Permission / Fallback View */}
+        {/* Camera Permission / Error / Blocked Helper View */}
         {cameraError && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mb-3 text-gray-500">
-              <Camera className="w-7 h-7" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Camera Stream Inactive</h3>
-            <p className="text-xs text-gray-500 max-w-sm mb-5 leading-relaxed">{cameraError}</p>
-            <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-md">
-              <button
-                type="button"
-                onClick={() => startCamera(facingMode)}
-                disabled={isRetryingCamera}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 disabled:opacity-60 text-xs font-semibold rounded-xl border border-gray-300 shadow-xs text-gray-700 transition cursor-pointer"
-              >
-                {isRetryingCamera ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#08537B]" />
-                    <span>Opening Camera...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20 overflow-y-auto">
+            {cameraError === 'PERMISSION_DENIED' ? (
+              <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 border border-rose-200 shadow-xl text-left animate-fadeIn">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-950">Camera Permission Blocked</h3>
+                    <p className="text-[11px] text-gray-500">Your browser has blocked camera access for this site.</p>
+                  </div>
+                </div>
+
+                <div className="my-3 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2">
+                  <span className="font-bold text-[11px] uppercase tracking-wider text-amber-800 block flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    How to Unblock in 2 Easy Steps:
+                  </span>
+                  <div className="space-y-1.5 text-[11px] text-amber-900 leading-snug">
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <span>Tap the <strong>Lock / Settings icon</strong> 🔒 in your browser address bar (top or bottom of screen).</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <span>Change <strong>Camera</strong> permission to <strong>Allow</strong>, then tap the button below.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => startCamera(facingMode)}
+                    disabled={isRetryingCamera}
+                    className="w-full py-2.5 px-3 rounded-xl bg-[#08537B] hover:bg-[#064364] active:bg-[#04334c] disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                  >
+                    {isRetryingCamera ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Checking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>I Allowed It - Retry</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Snap / Upload QR</span>
+                  </button>
+                </div>
+
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualModal(true)}
+                    className="text-[11px] text-gray-500 hover:text-[#08537B] font-semibold underline underline-offset-2 transition"
+                  >
+                    Or enter ticket number manually
+                  </button>
+                </div>
+              </div>
+            ) : cameraError === 'INSECURE_CONTEXT' ? (
+              <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 border border-amber-200 shadow-xl text-left">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-950">HTTPS Required for Live Camera</h3>
+                    <p className="text-[11px] text-gray-500">Mobile browsers restrict live camera stream to HTTPS or localhost.</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                  You can still scan tickets instantly using your phone camera via the Snap Photo button or Manual Entry:
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Snap QR with Camera</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualModal(true)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-[#08537B] hover:bg-[#064364] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Keyboard className="w-3.5 h-3.5" />
+                    <span>Manual Entry</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-xl text-center">
+                <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mx-auto mb-3 text-gray-500">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-gray-950 mb-1">
+                  {cameraError === 'HARDWARE_LOCKED'
+                    ? 'Camera In Use by Another App'
+                    : cameraError === 'NO_DEVICE'
+                    ? 'No Camera Detected'
+                    : 'Camera Stream Inactive'}
+                </h3>
+                <p className="text-xs text-gray-500 mb-4 max-w-xs mx-auto leading-relaxed">
+                  {cameraError === 'HARDWARE_LOCKED'
+                    ? 'Another app or browser tab may be using your camera. Please close it and retry.'
+                    : cameraError === 'NO_DEVICE'
+                    ? 'No camera was found. Use snapshot upload or manual ticket entry.'
+                    : 'Please allow camera permission or choose an alternative scanning method.'}
+                </p>
+
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startCamera(facingMode)}
+                    disabled={isRetryingCamera}
+                    className="py-2.5 px-4 bg-white hover:bg-gray-50 text-xs font-semibold rounded-xl border border-gray-300 text-gray-700 shadow-xs transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 inline mr-1.5 text-gray-500" />
                     <span>Retry Camera</span>
-                  </>
-                )}
-              </button>
+                  </button>
 
-              <button
-                type="button"
-                onClick={toggleCameraFacing}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 text-xs font-semibold rounded-xl border border-gray-300 shadow-xs text-gray-700 transition cursor-pointer"
-              >
-                <SwitchCamera className="w-3.5 h-3.5 text-gray-500" />
-                <span>Switch to {facingMode === 'environment' ? 'Front' : 'Rear'}</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={toggleCameraFacing}
+                    className="py-2.5 px-4 bg-white hover:bg-gray-50 text-xs font-semibold rounded-xl border border-gray-300 text-gray-700 shadow-xs transition"
+                  >
+                    <SwitchCamera className="w-3.5 h-3.5 inline mr-1.5 text-gray-500" />
+                    <span>Flip Camera</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-300 shadow-xs transition cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Snap / Upload QR</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
+                  >
+                    <Upload className="w-3.5 h-3.5 inline mr-1.5" />
+                    <span>Snap / Upload QR</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setShowManualModal(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#08537B] hover:bg-[#064364] text-xs font-bold text-white rounded-xl shadow-xs transition cursor-pointer"
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-                <span>Manual Entry</span>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualModal(true)}
+                    className="py-2.5 px-4 bg-[#08537B] hover:bg-[#064364] text-white text-xs font-bold rounded-xl shadow-xs transition"
+                  >
+                    <Keyboard className="w-3.5 h-3.5 inline mr-1.5" />
+                    <span>Manual Entry</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
