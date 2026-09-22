@@ -208,7 +208,7 @@ export default function BookingSuccessPage() {
             <span className="text-xs text-slate-500">One scannable QR per attendee</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print-ticket-grid">
             {booking.tickets?.map((ticket) => (
               <div
                 key={ticket.id}
@@ -239,7 +239,7 @@ export default function BookingSuccessPage() {
                 </div>
 
                 {/* Ticket Details & QR */}
-                <div className="p-6 flex-1 flex flex-col items-center text-center relative">
+                <div className="p-6 flex-1 flex flex-col items-center text-center">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#EE8518]">
                     {ticket.ticketTypeName}
                   </span>
@@ -247,29 +247,33 @@ export default function BookingSuccessPage() {
                     {booking.eventName}
                   </h3>
 
-                  <div className="my-5 p-3 bg-white rounded-[14px] border-2 border-slate-200 shadow-sm relative">
+                  <div className="my-4 p-3 bg-white rounded-[14px] border-2 border-slate-200 shadow-sm">
                     {ticket.qrData ? (
                       <QRCodeSVG
                         value={ticket.qrData}
                         size={160}
                         level="H"
                         includeMargin={false}
-                        fgColor={ticket.status === 'USED' ? '#64748B' : '#031E2D'}
+                        fgColor="#031E2D"
                       />
                     ) : (
                       <div className="w-40 h-40 flex items-center justify-center text-xs text-slate-400">
                         QR Unavailable
                       </div>
                     )}
-                    {ticket.status === 'USED' && (
-                      <div className="absolute inset-0 bg-white/85 backdrop-blur-[1px] rounded-[12px] flex flex-col items-center justify-center p-2 text-center">
-                        <CheckCircle className="w-8 h-8 text-emerald-600 mb-1" />
-                        <span className="text-xs font-black text-emerald-800 uppercase tracking-tight">
-                          Admitted at Gate
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                          Single entry completed
-                        </span>
+                  </div>
+
+                  {/* Status Indicator Pill */}
+                  <div className="mb-4">
+                    {ticket.status === 'USED' ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Admitted at Gate (Entry Used)</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-semibold text-slate-600">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Valid for Gate Admission</span>
                       </div>
                     )}
                   </div>
