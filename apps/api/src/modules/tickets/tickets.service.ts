@@ -31,7 +31,10 @@ export class TicketsService {
     this.encryptionKey =
       process.env.TICKET_ENCRYPTION_KEY ||
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-    this.storageDir = process.env.PDF_STORAGE_DIR || './storage/pdfs';
+    const rawStorageDir = process.env.PDF_STORAGE_DIR || 'storage/pdfs';
+    this.storageDir = path.isAbsolute(rawStorageDir)
+      ? rawStorageDir
+      : path.resolve(process.cwd(), rawStorageDir);
 
     if (!fs.existsSync(this.storageDir)) {
       fs.mkdirSync(this.storageDir, { recursive: true });
@@ -147,9 +150,10 @@ export class TicketsService {
 
     if (!booking) throw new NotFoundException('Booking not found');
 
-    await this.prisma.pdfArtifact.update({
+    await this.prisma.pdfArtifact.upsert({
       where: { bookingId: booking.id },
-      data: { status: PdfArtifactStatus.PROCESSING },
+      update: { status: PdfArtifactStatus.PROCESSING },
+      create: { bookingId: booking.id, status: PdfArtifactStatus.PROCESSING },
     });
 
     try {
@@ -195,7 +199,7 @@ export class TicketsService {
           doc.rect(40, 45, 515, 2).fill('#EE8518'); // CEDOI Orange Secondary Stripe
           doc.rect(40, 40, 515, 80).strokeColor('#CBD5E1').lineWidth(1).stroke();
 
-          // Top Left: Official CEDOI Brand Logo (Placed on white background so brand teal & orange are 100% visible)
+          // Top Left: Official CEDOI Brand Logo
           const logoCandidates = [
             path.resolve(process.cwd(), 'apps/api/assets/Logo_tight.png'),
             path.resolve(process.cwd(), 'assets/Logo_tight.png'),
@@ -247,7 +251,7 @@ export class TicketsService {
           doc.moveTo(60, 250).lineTo(535, 250).strokeColor('#E2E8F0').lineWidth(1).stroke();
 
           // Ticket Details Section
-          doc.fillColor('#64748B').fontSize(9).font('Helvetica').text('CATEGORY', 60, 265);
+          doc.fillColor('#64748B').fontSize(9).font('Helvetica').text('PASS TYPE', 60, 265);
           doc.fillColor('#08537B').fontSize(13).font('Helvetica-Bold').text(ticket.ticketType.name, 60, 278);
 
           doc.fillColor('#64748B').fontSize(9).font('Helvetica').text('ADMISSION TICKET NUMBER', 260, 265);
@@ -308,9 +312,18 @@ export class TicketsService {
 
       const stats = fs.statSync(filePath);
 
-      await this.prisma.pdfArtifact.update({
+      await this.prisma.pdfArtifact.upsert({
         where: { bookingId: booking.id },
-        data: {
+        update: {
+          status: PdfArtifactStatus.READY,
+          filePath,
+          fileUrl: `/api/v1/tickets/${booking.bookingNumber}/pdf`,
+          fileSizeBytes: stats.size,
+          generatedAt: new Date(),
+          errorMessage: null,
+        },
+        create: {
+          bookingId: booking.id,
           status: PdfArtifactStatus.READY,
           filePath,
           fileUrl: `/api/v1/tickets/${booking.bookingNumber}/pdf`,
@@ -324,9 +337,14 @@ export class TicketsService {
       return filePath;
     } catch (err: any) {
       this.logger.error(`PDF generation failed for booking ${booking.bookingNumber}: ${err.message}`, err.stack);
-      await this.prisma.pdfArtifact.update({
+      await this.prisma.pdfArtifact.upsert({
         where: { bookingId: booking.id },
-        data: {
+        update: {
+          status: PdfArtifactStatus.FAILED,
+          errorMessage: err.message,
+        },
+        create: {
+          bookingId: booking.id,
           status: PdfArtifactStatus.FAILED,
           errorMessage: err.message,
         },
@@ -345,8 +363,19 @@ export class TicketsService {
       throw new NotFoundException('Booking not found');
     }
 
-    if (!booking.pdfArtifact || booking.pdfArtifact.status !== PdfArtifactStatus.READY || !booking.pdfArtifact.filePath) {
-      // Trigger synchronous generation if not yet ready
+    const checkFileExists = (p?: string | null): boolean => {
+      if (!p) return false;
+      const absPath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
+      return fs.existsSync(absPath);
+    };
+
+    if (
+      !booking.pdfArtifact ||
+      booking.pdfArtifact.status !== PdfArtifactStatus.READY ||
+      !booking.pdfArtifact.filePath ||
+      !checkFileExists(booking.pdfArtifact.filePath)
+    ) {
+      // Automatically generate synchronously if missing from disk
       await this.generatePdfForBooking(booking.id);
     }
 
@@ -354,12 +383,18 @@ export class TicketsService {
       where: { bookingId: booking.id },
     });
 
-    if (!updated || updated.status !== PdfArtifactStatus.READY || !updated.filePath || !fs.existsSync(updated.filePath)) {
-      throw new NotFoundException('PDF ticket artifact is not ready yet. Please try again.');
+    const finalPath = updated?.filePath
+      ? path.isAbsolute(updated.filePath)
+        ? updated.filePath
+        : path.resolve(process.cwd(), updated.filePath)
+      : null;
+
+    if (!updated || updated.status !== PdfArtifactStatus.READY || !finalPath || !fs.existsSync(finalPath)) {
+      throw new NotFoundException('PDF ticket artifact could not be generated. Please try again.');
     }
 
     return {
-      filePath: updated.filePath,
+      filePath: finalPath,
       fileName: `CEDOI_${booking.bookingNumber}_Tickets.pdf`,
     };
   }

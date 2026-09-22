@@ -58,13 +58,38 @@ export default function BookingSuccessPage() {
     setIsDownloading(true);
     setDownloadError(null);
     try {
+      const headers: Record<string, string> = {};
+      if (typeof window !== 'undefined') {
+        const token =
+          localStorage.getItem('cedoi_admin_token') ||
+          localStorage.getItem('cedoi_scanner_token') ||
+          localStorage.getItem('cedoi_staff_token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
       const response = await fetch(`/api/v1/tickets/${booking.bookingNumber}/pdf`, {
         method: 'GET',
         credentials: 'include',
+        headers,
       });
+
       if (!response.ok) {
-        throw new Error(`Download failed (${response.status}). Please try again.`);
+        let msg = `Download failed (${response.status}). Please try again.`;
+        try {
+          const errJson = await response.json();
+          if (errJson?.error?.message) {
+            msg = errJson.error.message;
+          } else if (errJson?.message) {
+            msg = errJson.message;
+          }
+        } catch {
+          // Keep default message
+        }
+        throw new Error(msg);
       }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
