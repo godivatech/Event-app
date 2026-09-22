@@ -223,8 +223,14 @@ export default function BookingSuccessPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/20 text-white uppercase">
-                      {ticket.status}
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider ${
+                        ticket.status === 'USED'
+                          ? 'bg-emerald-500 text-white shadow-xs'
+                          : 'bg-white/20 text-white'
+                      }`}
+                    >
+                      {ticket.status === 'USED' ? 'ADMITTED ✓' : 'READY TO SCAN'}
                     </span>
                     <div className="text-[10px] text-[#D5EBF7] mt-0.5">
                       Pass #{ticket.admissionIndex} of {booking.tickets?.length}
@@ -233,7 +239,7 @@ export default function BookingSuccessPage() {
                 </div>
 
                 {/* Ticket Details & QR */}
-                <div className="p-6 flex-1 flex flex-col items-center text-center">
+                <div className="p-6 flex-1 flex flex-col items-center text-center relative">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#EE8518]">
                     {ticket.ticketTypeName}
                   </span>
@@ -241,18 +247,29 @@ export default function BookingSuccessPage() {
                     {booking.eventName}
                   </h3>
 
-                  <div className="my-5 p-3 bg-white rounded-[14px] border-2 border-slate-200 shadow-sm">
+                  <div className="my-5 p-3 bg-white rounded-[14px] border-2 border-slate-200 shadow-sm relative">
                     {ticket.qrData ? (
                       <QRCodeSVG
                         value={ticket.qrData}
                         size={160}
                         level="H"
                         includeMargin={false}
-                        fgColor="#031E2D"
+                        fgColor={ticket.status === 'USED' ? '#64748B' : '#031E2D'}
                       />
                     ) : (
                       <div className="w-40 h-40 flex items-center justify-center text-xs text-slate-400">
                         QR Unavailable
+                      </div>
+                    )}
+                    {ticket.status === 'USED' && (
+                      <div className="absolute inset-0 bg-white/85 backdrop-blur-[1px] rounded-[12px] flex flex-col items-center justify-center p-2 text-center">
+                        <CheckCircle className="w-8 h-8 text-emerald-600 mb-1" />
+                        <span className="text-xs font-black text-emerald-800 uppercase tracking-tight">
+                          Admitted at Gate
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                          Single entry completed
+                        </span>
                       </div>
                     )}
                   </div>

@@ -382,22 +382,49 @@ export default function MobileScanPage() {
 
         if (w > 0 && h > 0) {
           try {
+            const centerX = w / 2;
+            const centerY = h / 2;
+
             // 1. Hardware-accelerated native detector if available
             if (nativeDetector) {
               const barcodes = await nativeDetector.detect(video);
-              if (barcodes.length > 0 && barcodes[0].rawValue) {
-                handleDetectedQr(barcodes[0].rawValue);
-                return;
+              if (barcodes.length > 0) {
+                // When multiple QRs are in frame, select the one closest to the center reticle crosshair
+                let bestBarcode = barcodes[0];
+                let minDistance = Infinity;
+
+                for (const b of barcodes) {
+                  if (b.boundingBox) {
+                    const bCenterX = b.boundingBox.x + b.boundingBox.width / 2;
+                    const bCenterY = b.boundingBox.y + b.boundingBox.height / 2;
+                    const dist = Math.hypot(bCenterX - centerX, bCenterY - centerY);
+                    if (dist < minDistance) {
+                      minDistance = dist;
+                      bestBarcode = b;
+                    }
+                  }
+                }
+
+                if (bestBarcode && bestBarcode.rawValue) {
+                  handleDetectedQr(bestBarcode.rawValue);
+                  return;
+                }
               }
             }
 
-            // 2. High-performance jsQR frame decoder (Guarantees 100% iOS Safari & Android support)
+            // 2. High-performance jsQR frame decoder with center reticle targeting
             if (ctx) {
-              const targetW = Math.min(w, 640);
-              const targetH = Math.min(h, 480);
+              // First attempt: Crop to center 65% reticle to guarantee exact target isolation
+              const cropW = Math.round(w * 0.65);
+              const cropH = Math.round(h * 0.65);
+              const cropX = Math.round((w - cropW) / 2);
+              const cropY = Math.round((h - cropH) / 2);
+
+              const targetW = Math.min(cropW, 480);
+              const targetH = Math.min(cropH, 480);
               canvas.width = targetW;
               canvas.height = targetH;
-              ctx.drawImage(video, 0, 0, targetW, targetH);
+              ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
               const imgData = ctx.getImageData(0, 0, targetW, targetH);
               const code = jsQR(imgData.data, targetW, targetH, {
                 inversionAttempts: 'dontInvert',
