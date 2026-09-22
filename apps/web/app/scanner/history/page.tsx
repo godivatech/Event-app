@@ -8,11 +8,12 @@ import { StatusBadge, formatDateTime } from '@cedoi/ui';
 import {
   History,
   RefreshCw,
-  Loader2,
   MapPin,
   Ticket,
   Clock,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { ScannerHistorySkeleton } from '../../../components/skeletons';
 
@@ -38,18 +39,46 @@ interface HistoryItem {
   };
 }
 
+interface PaginatedHistoryResponse {
+  items: HistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default function ScannerHistoryPage() {
   const router = useRouter();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const pageSize = 10;
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient<HistoryItem[]>('api/v1/check-in/history', { timeoutMs: 10000 });
-      setHistory(data || []);
+      const data = await apiClient<PaginatedHistoryResponse | HistoryItem[]>(
+        `api/v1/check-in/history?page=${targetPage}&limit=${pageSize}`,
+        { timeoutMs: 10000 }
+      );
+
+      if (Array.isArray(data)) {
+        setHistory(data);
+        setTotalPages(1);
+        setTotalCount(data.length);
+      } else if (data && typeof data === 'object') {
+        setHistory(data.items || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total || 0);
+      } else {
+        setHistory([]);
+        setTotalPages(1);
+        setTotalCount(0);
+      }
     } catch (err: any) {
       if (
         err.code === 'UNAUTHENTICATED' ||
@@ -73,8 +102,20 @@ export default function ScannerHistoryPage() {
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    fetchHistory(page);
+  }, [page]);
+
+  const handlePrev = () => {
+    if (page > 1) {
+      setPage((p) => p - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (page < totalPages) {
+      setPage((p) => p + 1);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-4">
@@ -91,7 +132,7 @@ export default function ScannerHistoryPage() {
         </div>
 
         <button
-          onClick={fetchHistory}
+          onClick={() => fetchHistory(page)}
           disabled={loading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 border border-gray-300 shadow-xs transition disabled:opacity-50"
         >
@@ -159,6 +200,36 @@ export default function ScannerHistoryPage() {
           ))
         )}
       </div>
+
+      {/* Simple Pagination Controls */}
+      {totalCount > 0 && totalPages > 1 && (
+        <div className="p-3 bg-white rounded-2xl border border-gray-200 flex items-center justify-between text-xs text-gray-600 shadow-2xs mt-2">
+          <span className="text-xs text-gray-500">
+            Page <span className="font-bold text-gray-900">{page}</span> of{' '}
+            <span className="font-bold text-gray-900">{totalPages}</span>
+            <span className="hidden sm:inline text-gray-400 ml-1">({totalCount} scans)</span>
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handlePrev}
+              disabled={page <= 1 || loading}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-gray-700 border border-gray-200 transition disabled:opacity-40 disabled:hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Prev</span>
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={page >= totalPages || loading}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-gray-700 border border-gray-200 transition disabled:opacity-40 disabled:hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

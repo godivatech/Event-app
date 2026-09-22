@@ -303,24 +303,39 @@ export class CheckInsService {
   }
 
   /**
-   * Retrieves recent check-in history for the active scanner staff.
+   * Retrieves paginated check-in history for the active scanner staff.
    */
-  async getScannerHistory(staffUserId: string, eventId?: string, limit: number = 50) {
-    return this.prisma.checkIn.findMany({
-      where: {
-        staffUserId,
-        ...(eventId ? { eventId } : {}),
-      },
-      include: {
-        ticket: {
-          include: {
-            ticketType: true,
+  async getScannerHistory(staffUserId: string, eventId?: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const where = {
+      staffUserId,
+      ...(eventId ? { eventId } : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.checkIn.findMany({
+        where,
+        include: {
+          ticket: {
+            include: {
+              ticketType: true,
+            },
           },
+          gate: true,
         },
-        gate: true,
-      },
-      orderBy: { checkedInAt: 'desc' },
-      take: limit,
-    });
+        orderBy: { checkedInAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.checkIn.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 }

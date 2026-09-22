@@ -39,8 +39,12 @@ export class CheckInsController {
   @Roles(UserRole.SCANNER, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async getHistory(
     @Query('eventId') eventId: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
     @CurrentUser() staff: any
   ) {
-    return this.checkInsService.getScannerHistory(staff.id, eventId);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    return this.checkInsService.getScannerHistory(staff.id, eventId, pageNum, limitNum);
   }
 }
