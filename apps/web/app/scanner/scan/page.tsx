@@ -492,10 +492,10 @@ export default function MobileScanPage() {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate(100);
         }
-        // Fast-flow auto reset after 2.2s
+        // Fast-flow auto reset after 2.5s for seamless line management
         setTimeout(() => {
           resetScan();
-        }, 2200);
+        }, 2500);
       } else if (response.result === CheckInResult.ALREADY_USED) {
         playAudioFeedback('warning');
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -509,9 +509,12 @@ export default function MobileScanPage() {
       }
     } catch (err: any) {
       playAudioFeedback('error');
+      const isTimeout = err?.code === 'REQUEST_TIMEOUT' || err?.message?.toLowerCase().includes('timeout');
       setScanResult({
         result: CheckInResult.INVALID,
-        message: err.message || 'Connection timeout or network failure. Please retry.',
+        message: isTimeout
+          ? 'Gate server response delayed. Please re-scan QR pass.'
+          : err?.message || 'Network connection issue. Please check connection.',
         isDuplicateRequest: false,
       });
     } finally {
@@ -862,7 +865,7 @@ export default function MobileScanPage() {
 
               {/* Status Title */}
               <div
-                className={`text-xs font-black tracking-widest uppercase mb-1 ${
+                className={`text-xs font-black tracking-widest uppercase mb-1.5 flex items-center justify-center gap-1.5 ${
                   scanResult.result === CheckInResult.SUCCESS
                     ? 'text-emerald-700'
                     : scanResult.result === CheckInResult.ALREADY_USED
@@ -870,22 +873,35 @@ export default function MobileScanPage() {
                     : 'text-rose-700'
                 }`}
               >
-                {scanResult.result === CheckInResult.SUCCESS
-                  ? 'ADMISSION GRANTED'
-                  : scanResult.result === CheckInResult.ALREADY_USED
-                  ? 'ALREADY CHECKED IN'
-                  : 'ENTRY REJECTED'}
+                <span>
+                  {scanResult.result === CheckInResult.SUCCESS
+                    ? 'ADMISSION GRANTED'
+                    : scanResult.result === CheckInResult.ALREADY_USED
+                    ? 'ALREADY CHECKED IN'
+                    : scanResult.result === CheckInResult.WRONG_EVENT
+                    ? 'WRONG EVENT TICKET'
+                    : scanResult.result === CheckInResult.CANCELLED
+                    ? 'TICKET VOID / CANCELLED'
+                    : scanResult.result === CheckInResult.OUTSIDE_WINDOW
+                    ? 'OUTSIDE ENTRY WINDOW'
+                    : 'ENTRY REJECTED'}
+                </span>
+                {scanResult.isDuplicateRequest && (
+                  <span className="text-[10px] lowercase font-semibold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                    duplicate
+                  </span>
+                )}
               </div>
 
-              <h2 className="text-xl font-bold text-gray-900 mb-2 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-950 mb-2 tracking-tight">
                 {scanResult.message}
               </h2>
 
               {/* Ticket Details Card */}
               {scanResult.ticket && (
-                <div className="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-left space-y-2 text-xs">
+                <div className="mt-4 p-4 rounded-2xl bg-gray-50/90 border border-gray-200 text-left space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Category:</span>
+                    <span className="text-gray-500">Ticket Category:</span>
                     <span className="font-bold text-[#08537B]">
                       {scanResult.ticket.ticketTypeName}
                     </span>
@@ -897,7 +913,7 @@ export default function MobileScanPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Attendee:</span>
+                    <span className="text-gray-500">Attendee Name:</span>
                     <span className="font-semibold text-gray-900 truncate max-w-[170px]">
                       {scanResult.ticket.attendeeName || scanResult.ticket.customerName}
                     </span>
@@ -910,26 +926,47 @@ export default function MobileScanPage() {
                       </span>
                     </div>
                   )}
+                  {scanResult.ticket.status && (
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 text-[11px]">
+                      <span className="text-gray-500">Database Status:</span>
+                      <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
+                        scanResult.ticket.status === 'ACTIVE'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : scanResult.ticket.status === 'USED'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {scanResult.ticket.status}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Prior Check-In Details for ALREADY_USED */}
-              {scanResult.result === CheckInResult.ALREADY_USED && scanResult.firstAdmittedAt && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 text-left">
-                  <div className="font-semibold mb-0.5 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Prior Gate Admission</span>
+              {scanResult.result === CheckInResult.ALREADY_USED && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 text-left">
+                  <div className="font-bold mb-1 flex items-center gap-1.5 text-amber-900">
+                    <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    <span>Prior Gate Admission Record</span>
                   </div>
-                  <div className="text-[11px] text-amber-800">
-                    Checked in at{' '}
-                    <span className="font-bold font-mono">
-                      {new Date(scanResult.firstAdmittedAt).toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}
-                    </span>{' '}
-                    via {scanResult.firstAdmittedGate || 'Main Gate'}.
+                  <div className="text-[11px] text-amber-900 leading-relaxed">
+                    {scanResult.firstAdmittedAt ? (
+                      <>
+                        Admitted at{' '}
+                        <span className="font-bold font-mono">
+                          {new Date(scanResult.firstAdmittedAt).toLocaleTimeString('en-IN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true,
+                          })}
+                        </span>{' '}
+                        via <span className="font-semibold">{scanResult.firstAdmittedGate || 'Main Gate'}</span>.
+                      </>
+                    ) : (
+                      'This pass was already scanned and accepted earlier.'
+                    )}
                   </div>
                 </div>
               )}
@@ -938,7 +975,7 @@ export default function MobileScanPage() {
               <button
                 type="button"
                 onClick={resetScan}
-                className="mt-5 w-full py-3.5 rounded-xl bg-[#08537B] hover:bg-[#064364] active:bg-[#04324c] text-white font-bold text-xs shadow-md transition"
+                className="mt-5 w-full py-3.5 rounded-xl bg-[#08537B] hover:bg-[#064364] active:bg-[#04324c] text-white font-bold text-xs shadow-md transition cursor-pointer"
               >
                 Scan Next Attendee (Tap / Space)
               </button>
