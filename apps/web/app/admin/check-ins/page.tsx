@@ -112,7 +112,7 @@ export default function AdminCheckInsPage() {
             <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-200">
               <tr>
                 <th className="py-3.5 px-4 font-semibold">Ticket Number</th>
-                <th className="py-3.5 px-4 font-semibold">Category</th>
+                <th className="py-3.5 px-4 font-semibold">Pass Type</th>
                 <th className="py-3.5 px-4 font-semibold">Attendee / Buyer</th>
                 <th className="py-3.5 px-4 font-semibold">Gate & Terminal</th>
                 <th className="py-3.5 px-4 font-semibold">Staff Validator</th>
@@ -157,7 +157,7 @@ export default function AdminCheckInsPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="font-semibold text-gray-900">
-                        {ci.ticket?.ticketType?.name || 'General Admission'}
+                        {ci.ticket?.ticketType?.name || 'Event Pass'}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">

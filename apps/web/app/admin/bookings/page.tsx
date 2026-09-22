@@ -442,7 +442,7 @@ export default function AdminBookingsPage() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50 text-gray-500">
                     <tr>
-                      <th className="py-2.5 px-3">Ticket Category</th>
+                      <th className="py-2.5 px-3">Pass Type</th>
                       <th className="py-2.5 px-3 text-center">Qty</th>
                       <th className="py-2.5 px-3 text-right">Unit Price</th>
                       <th className="py-2.5 px-3 text-right">Line Total</th>

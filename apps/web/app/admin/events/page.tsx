@@ -213,13 +213,13 @@ export default function AdminEventsPage() {
                 <div>
                   <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5 flex items-center gap-2">
                     <Ticket className="w-4 h-4 text-[#EE8518]" />
-                    Configured Ticket Categories
+                    Configured Event Pass
                   </h3>
                   <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-gray-50 text-gray-500 font-semibold border-b border-gray-200">
                         <tr>
-                          <th className="py-2.5 px-3">Category</th>
+                          <th className="py-2.5 px-3">Pass Type</th>
                           <th className="py-2.5 px-3">Unit Price</th>
                           <th className="py-2.5 px-3 text-right">Capacity</th>
                         </tr>

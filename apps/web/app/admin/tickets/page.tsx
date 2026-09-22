@@ -212,7 +212,7 @@ export default function AdminTicketsPage() {
             <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-200">
               <tr>
                 <th className="py-3.5 px-4 font-semibold">Ticket Number</th>
-                <th className="py-3.5 px-4 font-semibold">Category</th>
+                <th className="py-3.5 px-4 font-semibold">Pass Type</th>
                 <th className="py-3.5 px-4 font-semibold">Booking #</th>
                 <th className="py-3.5 px-4 font-semibold">Delegate</th>
                 <th className="py-3.5 px-4 font-semibold">Business & Location</th>

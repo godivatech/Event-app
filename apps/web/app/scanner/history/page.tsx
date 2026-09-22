@@ -137,7 +137,7 @@ export default function ScannerHistoryPage() {
 
               <div className="flex items-center justify-between text-xs text-gray-600">
                 <span className="font-semibold text-gray-800">
-                  {item.ticket?.ticketType?.name || 'General Admission'}
+                  {item.ticket?.ticketType?.name || 'Event Pass'}
                   {item.ticket?.admissionIndex ? ` (#${item.ticket.admissionIndex})` : ''}
                 </span>
                 <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">

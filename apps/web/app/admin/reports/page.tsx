@@ -44,11 +44,11 @@ const reports: ReportConfig[] = [
     id: 'tickets',
     title: 'Tickets & Admissions Registry',
     description:
-      'Granular breakdown of every unique digital admission ticket, category allocation, buyer identity, admission index, and lifecycle state.',
+      'Granular breakdown of every unique digital admission ticket, pass type allocation, buyer identity, admission index, and lifecycle state.',
     columns: [
       'Ticket Number',
       'Booking Number',
-      'Ticket Category',
+      'Pass Type',
       'Buyer Name',
       'Ticket Status',
       'Admission Index',
@@ -64,7 +64,7 @@ const reports: ReportConfig[] = [
       'Real-time verification log of all gate check-in attempts, gate identifiers, authorized validator staff name, and admission results.',
     columns: [
       'Ticket Number',
-      'Category',
+      'Pass Type',
       'Gate Assigned',
       'Staff Validator',
       'Scan Result',

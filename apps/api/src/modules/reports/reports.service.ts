@@ -422,7 +422,7 @@ export class ReportsService {
       const headers = [
         'Ticket Number',
         'Booking Number',
-        'Category',
+        'Pass Type',
         'Attendee Name',
         'Buyer Name',
         'Phone',
@@ -462,7 +462,7 @@ export class ReportsService {
         csvContent += row.map(sanitize).join(',') + '\n';
       }
     } else if (type === 'checkins') {
-      const headers = ['Ticket Number', 'Category', 'Gate', 'Staff Name', 'Result', 'Checked-in At'];
+      const headers = ['Ticket Number', 'Pass Type', 'Gate', 'Staff Name', 'Result', 'Checked-in At'];
       csvContent += headers.map(sanitize).join(',') + '\n';
 
       const checkIns = await this.prisma.checkIn.findMany({

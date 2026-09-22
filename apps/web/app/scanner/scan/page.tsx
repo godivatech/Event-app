@@ -901,9 +901,9 @@ export default function MobileScanPage() {
               {scanResult.ticket && (
                 <div className="mt-4 p-4 rounded-2xl bg-gray-50/90 border border-gray-200 text-left space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Ticket Category:</span>
+                    <span className="text-gray-500">Pass Type:</span>
                     <span className="font-bold text-[#08537B]">
-                      {scanResult.ticket.ticketTypeName}
+                      {scanResult.ticket.ticketTypeName || 'Event Pass'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

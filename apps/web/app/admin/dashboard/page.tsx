@@ -346,7 +346,7 @@ export default function AdminDashboardPage() {
         <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white">
           <div>
             <h2 className="text-base font-bold text-gray-900 tracking-tight">
-              Ticket Categories & Inventory Allocation
+              Event Pass Inventory & Capacity Allocation
             </h2>
             <p className="text-xs text-gray-500">
               Server-enforced inventory thresholds with pessimistic concurrency locking
@@ -361,7 +361,7 @@ export default function AdminDashboardPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-200">
               <tr>
-                <th className="py-3.5 px-4 font-semibold">Category</th>
+                <th className="py-3.5 px-4 font-semibold">Pass Type</th>
                 <th className="py-3.5 px-4 font-semibold">Unit Price</th>
                 <th className="py-3.5 px-4 text-center font-semibold">Allocated</th>
                 <th className="py-3.5 px-4 text-center font-semibold">Sold</th>
