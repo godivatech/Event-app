@@ -291,24 +291,30 @@ model ReservationItem {
 }
 
 model PaymentAttempt {
-  id               String               @id @default(uuid())
-  bookingId        String
-  attemptNumber    Int                  @default(1)
-  razorpayOrderId  String?              @unique
-  razorpayPaymentId String?             @unique
+  id                String               @id @default(uuid())
+  bookingId         String
+  attemptNumber     Int                  @default(1)
+  provider          String               @default("CASHFREE")
+  cfOrderId         String?              @unique
+  cfPaymentId       String?              @unique
+  cfPaymentSessionId String?
+  razorpayOrderId   String?              @unique
+  razorpayPaymentId String?              @unique
   razorpaySignature String?
-  amountPaise      Int
-  currency         String               @default("INR")
-  status           PaymentAttemptStatus @default(CREATED)
-  failureReason    String?
-  metadata         Json?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  amountPaise       Int
+  currency          String               @default("INR")
+  status            PaymentAttemptStatus @default(CREATED)
+  failureReason     String?
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
-  booking          Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  refunds          Refund[]
+  booking           Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  refunds           Refund[]
 
   @@index([bookingId, status])
+  @@index([cfOrderId])
+  @@index([cfPaymentId])
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
 }
@@ -320,6 +326,7 @@ model Refund {
   amountPaise       Int
   reason            String
   status            RefundStatus @default(REQUESTED)
+  cfRefundId        String?      @unique
   razorpayRefundId  String?      @unique
   actorId           String?
   internalReference String       @unique
@@ -331,6 +338,7 @@ model Refund {
   paymentAttempt    PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
 
   @@index([bookingId, status])
+  @@index([cfRefundId])
   @@index([internalReference])
 }
 

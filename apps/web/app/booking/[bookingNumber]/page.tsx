@@ -10,7 +10,7 @@ import { ReservationCountdown } from '../../../components/booking/ReservationCou
 import { apiClient } from '../../../lib/api-client';
 import {
   BookingDetailDto,
-  RazorpayOrderResponseDto,
+  CashfreeOrderResponseDto,
   PaymentVerificationResultDto,
 } from '@cedoi/contracts';
 import { formatPaise, formatEventDate } from '../../../lib/formatters';
@@ -34,14 +34,13 @@ export default function BookingReviewAndPaymentPage() {
   const bookingNumber = params.bookingNumber as string;
 
   const [booking, setBooking] = useState<BookingDetailDto | null>(null);
-  const [orderData, setOrderData] = useState<RazorpayOrderResponseDto | null>(null);
+  const [orderData, setOrderData] = useState<CashfreeOrderResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [cashfreeReady, setCashfreeReady] = useState(false);
 
   useEffect(() => {
-
     async function loadData() {
       try {
         const bookingData = await apiClient<BookingDetailDto>(`api/v1/bookings/${bookingNumber}`);
@@ -53,7 +52,7 @@ export default function BookingReviewAndPaymentPage() {
         }
 
         // Pre-initialize payment order for seamless direct checkout
-        const order = await apiClient<RazorpayOrderResponseDto>('api/v1/payments/create-order', {
+        const order = await apiClient<CashfreeOrderResponseDto>('api/v1/payments/create-order', {
           method: 'POST',
           body: JSON.stringify({ bookingNumber }),
         });
@@ -68,73 +67,102 @@ export default function BookingReviewAndPaymentPage() {
     loadData();
   }, [bookingNumber, router]);
 
+  // Query backend status in case modal was closed after successful payment
+  const checkBackendPaymentStatus = async () => {
+    try {
+      const refreshed = await apiClient<BookingDetailDto>(`api/v1/bookings/${bookingNumber}`);
+      if (refreshed.status === 'CONFIRMED') {
+        router.push(`/booking/${bookingNumber}/success`);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  };
 
-  // Open Official Razorpay Checkout Modal
-  const handleOpenRazorpay = () => {
+  // Open Official Cashfree Checkout Modal (JS SDK v3)
+  const handleOpenCashfree = () => {
     if (!orderData) return;
 
-    if (typeof (window as any).Razorpay === 'undefined') {
-      setErrorMessage('Razorpay SDK is loading. You can also use the Instant Test-Mode Payment below.');
+    // Check if running in simulated offline/test mode
+    if (orderData.paymentSessionId.startsWith('session_sim_') || orderData.paymentSessionId.startsWith('session_test_')) {
+      handleSimulateTestPayment();
       return;
     }
 
-    const options = {
-      key: orderData.keyId,
-      amount: orderData.amountPaise,
-      currency: orderData.currency,
-      name: 'CEDOI Ticketing',
-      description: `Admission Booking ${orderData.bookingNumber}`,
-      image: '/brand/logo.png',
-      order_id: orderData.orderId,
-      prefill: {
-        name: orderData.customerName,
-        contact: orderData.customerPhone,
-        email: orderData.customerEmail || undefined,
-      },
-      theme: {
-        color: '#08537B',
-      },
-      handler: async function (response: any) {
-        await verifyCapturedPayment({
-          bookingNumber: orderData.bookingNumber,
-          razorpayOrderId: response.razorpay_order_id,
-          razorpayPaymentId: response.razorpay_payment_id,
-          razorpaySignature: response.razorpay_signature,
-        });
-      },
-      modal: {
-        ondismiss: function () {
-          setIsProcessing(false);
-        },
-      },
-    };
+    if (typeof (window as any).Cashfree === 'undefined') {
+      setErrorMessage('Cashfree SDK is loading. You can also use the Instant Test-Mode Payment below.');
+      return;
+    }
 
     setIsProcessing(true);
-    const rzp = new (window as any).Razorpay(options);
-    rzp.open();
+    setErrorMessage(null);
+
+    try {
+      const cashfree = (window as any).Cashfree({
+        mode: orderData.environment === 'PRODUCTION' ? 'production' : 'sandbox',
+      });
+
+      cashfree
+        .checkout({
+          paymentSessionId: orderData.paymentSessionId,
+          redirectTarget: '_modal',
+        })
+        .then(async (result: any) => {
+          if (result.error) {
+            setIsProcessing(false);
+            if (result.error.message && !result.error.message.toLowerCase().includes('close')) {
+              setErrorMessage(result.error.message);
+            }
+            // Check if payment was captured before modal closed
+            await checkBackendPaymentStatus();
+          }
+          if (result.paymentDetails) {
+            await verifyCapturedPayment({
+              bookingNumber: orderData.bookingNumber,
+              orderId: orderData.orderId,
+              paymentId: result.paymentDetails.paymentId || result.paymentDetails.cfPaymentId,
+            });
+          }
+        })
+        .catch(async (err: any) => {
+          thisLoggerOrCatch: {
+            setIsProcessing(false);
+            const confirmed = await checkBackendPaymentStatus();
+            if (!confirmed && err?.message) {
+              setErrorMessage(err.message);
+            }
+          }
+        });
+    } catch (err: any) {
+      setIsProcessing(false);
+      setErrorMessage(err.message || 'Could not open Cashfree checkout modal.');
+    }
   };
 
   // Test-Mode Payment Simulation Harness
   const handleSimulateTestPayment = async () => {
     if (!orderData) return;
     setIsProcessing(true);
+    setErrorMessage(null);
 
     const testPaymentId = `pay_test_${Date.now()}`;
     const testSignature = `sig_test_${Date.now()}`;
 
     await verifyCapturedPayment({
       bookingNumber: orderData.bookingNumber,
-      razorpayOrderId: orderData.orderId,
-      razorpayPaymentId: testPaymentId,
-      razorpaySignature: testSignature,
+      orderId: orderData.orderId,
+      paymentId: testPaymentId,
+      signature: testSignature,
     });
   };
 
   const verifyCapturedPayment = async (payload: {
     bookingNumber: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
+    orderId: string;
+    paymentId?: string;
+    signature?: string;
   }) => {
     try {
       const result = await apiClient<PaymentVerificationResultDto>('api/v1/payments/verify', {
@@ -145,7 +173,7 @@ export default function BookingReviewAndPaymentPage() {
       if (result.status === 'CONFIRMED') {
         router.push(`/booking/${bookingNumber}/success`);
       } else {
-        setErrorMessage(`Payment result: ${result.status}. Please check your booking status.`);
+        setErrorMessage(`Payment result: ${result.status}. If your account was debited, please refresh.`);
         setIsProcessing(false);
       }
     } catch (err: any) {
@@ -180,8 +208,8 @@ export default function BookingReviewAndPaymentPage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 w-full overflow-x-hidden">
       <Script
-        src="https://checkout.razorpay.com/v1/checkout.js"
-        onLoad={() => setRazorpayReady(true)}
+        src="https://sdk.cashfree.com/js/v3/cashfree.js"
+        onLoad={() => setCashfreeReady(true)}
       />
 
       <Navbar />
@@ -321,16 +349,16 @@ export default function BookingReviewAndPaymentPage() {
               <div className="pt-4 border-t border-slate-100 space-y-3">
                 <div className="flex items-center gap-2.5 text-xs text-slate-700 font-semibold">
                   <CreditCard className="w-4 h-4 text-[#08537B]" />
-                  <span>Razorpay Payment Gateway</span>
+                  <span>Cashfree Payment Gateway</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Pay securely via UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, or NetBanking.
                 </p>
 
-                {/* Primary Razorpay Action Button */}
+                {/* Primary Cashfree Action Button */}
                 <button
                   type="button"
-                  onClick={handleOpenRazorpay}
+                  onClick={handleOpenCashfree}
                   disabled={isProcessing || !orderData}
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-[12px] bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all"
                 >
@@ -342,7 +370,7 @@ export default function BookingReviewAndPaymentPage() {
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>Pay {formatPaise(booking.totalPaise)} with Razorpay</span>
+                      <span>Pay {formatPaise(booking.totalPaise)} with Cashfree</span>
                     </>
                   )}
                 </button>

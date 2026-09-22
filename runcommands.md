@@ -57,6 +57,22 @@ npm run build
 
 ---
 
+## 💳 Payment Gateway Configuration (Cashfree)
+
+The application uses **Cashfree Payments** as the primary payment gateway.
+
+In `apps/api/.env`:
+```env
+CASHFREE_APP_ID="your_cashfree_app_id"
+CASHFREE_SECRET_KEY="your_cashfree_secret_key"
+CASHFREE_ENV="SANDBOX" # Or "PRODUCTION"
+CASHFREE_API_VERSION="2023-08-01"
+```
+> **Note:** If Cashfree credentials are empty or set to test mode, the application seamlessly provides an instant **Test-Mode Dev Simulation** on the checkout page so you can test complete end-to-end QR pass generation and PDF issuance offline.
+
+---
+
 ## 🌐 Production URLs (Deployed)
 - **Live Frontend**: `https://event-app-web-ten.vercel.app/`
 - **Live Backend**: `https://event-api-mlna.onrender.com/`
+

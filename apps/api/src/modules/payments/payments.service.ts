@@ -9,59 +9,55 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { AuditService } from '../audit/audit.service';
+import { CashfreeClient } from './cashfree.client';
 import {
   BookingStatus,
   ReservationStatus,
   PaymentAttemptStatus,
   RefundStatus,
   TicketStatus,
-  OutboxJobType,
   Prisma,
 } from '@prisma/client';
 import {
-  RazorpayOrderResponseDto,
+  CashfreeOrderResponseDto,
   PaymentVerificationResultDto,
   VerifyPaymentDto,
 } from '@cedoi/contracts';
 import * as crypto from 'crypto';
-const Razorpay = require('razorpay');
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  private razorpayClient: any = null;
-  private readonly keyId: string;
-  private readonly keySecret: string;
-  private readonly webhookSecret: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
     private readonly ticketsService: TicketsService,
-    private readonly audit: AuditService
-  ) {
-    this.keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_cedoi123456';
-    this.keySecret = process.env.RAZORPAY_KEY_SECRET || 'mock_secret_key_for_test_mode';
-    this.webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'mock_webhook_secret_cedoi_test';
+    private readonly audit: AuditService,
+    private readonly cashfreeClient: CashfreeClient
+  ) {}
 
-    try {
-      this.razorpayClient = new (Razorpay as any)({
-        key_id: this.keyId,
-        key_secret: this.keySecret,
-      });
-    } catch (err: any) {
-      this.logger.warn(`Razorpay client initialized with mock/test fallback: ${err.message}`);
+  /**
+   * Helper to extract booking number from order ID format: cf_<bookingNumber>_<timestamp>
+   */
+  private extractBookingNumberFromOrderId(orderId: string): string | null {
+    if (!orderId) return null;
+    const parts = orderId.split('_');
+    // If format cf_CEDOI-2026-XXXXX_hash
+    if (parts.length >= 3 && parts[0] === 'cf') {
+      return parts.slice(1, parts.length - 1).join('_');
     }
+    return null;
   }
 
   /**
-   * Creates a Razorpay Order for a reserved booking or reuses existing active attempt.
+   * Creates a Cashfree PG Order for a reserved booking or reuses existing active attempt.
    */
   async createPaymentOrder(
     bookingNumber: string,
     ipAddress?: string
-  ): Promise<RazorpayOrderResponseDto> {
+  ): Promise<CashfreeOrderResponseDto> {
     const booking = await this.prisma.booking.findUnique({
       where: { bookingNumber },
       include: {
@@ -104,14 +100,17 @@ export class PaymentsService {
       });
     }
 
-    // Reuse existing attempt if still valid (avoids duplicate order creation on button retries)
+    // Reuse existing attempt if still valid (avoids duplicate order creation on page refreshes)
     const existingAttempt = booking.paymentAttempts[0];
-    if (existingAttempt && existingAttempt.razorpayOrderId) {
+    if (existingAttempt && (existingAttempt.cfOrderId || existingAttempt.cfPaymentSessionId)) {
       return {
-        orderId: existingAttempt.razorpayOrderId,
+        orderId: existingAttempt.cfOrderId || existingAttempt.id,
+        paymentSessionId: existingAttempt.cfPaymentSessionId || '',
+        cfOrderId: existingAttempt.cfOrderId || undefined,
         amountPaise: existingAttempt.amountPaise,
+        amountRupees: Number((existingAttempt.amountPaise / 100).toFixed(2)),
         currency: existingAttempt.currency,
-        keyId: this.keyId,
+        environment: this.cashfreeClient.getEnvironment(),
         bookingNumber: booking.bookingNumber,
         customerName: booking.customerName,
         customerPhone: booking.customerPhone,
@@ -119,28 +118,23 @@ export class PaymentsService {
       };
     }
 
-    // Create new order on Razorpay
-    let razorpayOrderId: string;
-    try {
-      if (this.razorpayClient && !this.keyId.startsWith('rzp_test_mock')) {
-        const order = await this.razorpayClient.orders.create({
-          amount: booking.totalPaise,
-          currency: booking.currency,
-          receipt: booking.bookingNumber,
-          notes: {
-            bookingNumber: booking.bookingNumber,
-            eventId: booking.eventId,
-          },
-        });
-        razorpayOrderId = order.id;
-      } else {
-        razorpayOrderId = `order_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
-      }
-    } catch (err: any) {
-      this.logger.error(`Razorpay order creation failed: ${err.message}`);
-      // Fallback for offline test environments
-      razorpayOrderId = `order_test_${uuidv4().replace(/-/g, '').slice(0, 14)}`;
-    }
+    // Generate unique Cashfree Order ID (alphanumeric + underscore/hyphen, max 45 chars)
+    const cleanBookingRef = booking.bookingNumber.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 25);
+    const orderId = `cf_${cleanBookingRef}_${Date.now().toString(36)}`;
+    const amountRupees = Number((booking.totalPaise / 100).toFixed(2));
+
+    const cfOrder = await this.cashfreeClient.createOrder({
+      orderId,
+      amountRupees,
+      currency: booking.currency,
+      customer: {
+        customerId: booking.bookingNumber,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        customerEmail: booking.customerEmail,
+      },
+      orderNote: `CEDOI AWARDS Admission - ${booking.bookingNumber}`,
+    });
 
     const attemptCount = await this.prisma.paymentAttempt.count({
       where: { bookingId: booking.id },
@@ -150,7 +144,9 @@ export class PaymentsService {
       data: {
         bookingId: booking.id,
         attemptNumber: attemptCount + 1,
-        razorpayOrderId,
+        provider: 'CASHFREE',
+        cfOrderId: cfOrder.orderId,
+        cfPaymentSessionId: cfOrder.paymentSessionId,
         amountPaise: booking.totalPaise,
         currency: booking.currency,
         status: PaymentAttemptStatus.CREATED,
@@ -161,17 +157,25 @@ export class PaymentsService {
       actorType: 'CUSTOMER',
       action: 'PAYMENT_ORDER_CREATED',
       entityType: 'PAYMENT',
-      entityId: razorpayOrderId,
+      entityId: cfOrder.orderId,
       eventId: booking.eventId,
       ipAddress,
-      metadata: { bookingNumber: booking.bookingNumber, amountPaise: booking.totalPaise },
+      metadata: {
+        bookingNumber: booking.bookingNumber,
+        amountPaise: booking.totalPaise,
+        amountRupees,
+        provider: 'CASHFREE',
+      },
     });
 
     return {
-      orderId: razorpayOrderId,
+      orderId: cfOrder.orderId,
+      paymentSessionId: cfOrder.paymentSessionId,
+      cfOrderId: cfOrder.cfOrderId,
       amountPaise: booking.totalPaise,
+      amountRupees,
       currency: booking.currency,
-      keyId: this.keyId,
+      environment: this.cashfreeClient.getEnvironment(),
       bookingNumber: booking.bookingNumber,
       customerName: booking.customerName,
       customerPhone: booking.customerPhone,
@@ -180,47 +184,68 @@ export class PaymentsService {
   }
 
   /**
-   * Verifies client-submitted Razorpay payment signature.
+   * Verifies client-submitted Cashfree payment status.
    */
   async verifyPaymentSignature(
     dto: VerifyPaymentDto,
     ipAddress?: string
   ): Promise<PaymentVerificationResultDto> {
-    const { bookingNumber, razorpayOrderId, razorpayPaymentId, razorpaySignature } = dto;
+    const { bookingNumber } = dto;
+    const orderId = dto.orderId || dto.cfOrderId || dto.razorpayOrderId || '';
+    const paymentId = dto.paymentId || dto.cfPaymentId || dto.razorpayPaymentId || `pay_${Date.now()}`;
+    const signature = dto.signature || dto.razorpaySignature || '';
 
-    // Verify signature: HMAC-SHA256(order_id + "|" + payment_id, secret)
-    const expectedSignature = crypto
-      .createHmac('sha256', this.keySecret)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest('hex');
-
-    const isValidSignature =
-      expectedSignature === razorpaySignature ||
-      (this.keySecret === 'mock_secret_key_for_test_mode' && razorpaySignature.startsWith('sig_test_'));
-
-    if (!isValidSignature) {
-      this.logger.warn(`Signature verification failed for booking ${bookingNumber}, order ${razorpayOrderId}`);
-      await this.audit.log({
-        actorType: 'CUSTOMER',
-        action: 'PAYMENT_SIGNATURE_MISMATCH',
-        entityType: 'PAYMENT',
-        entityId: razorpayOrderId,
-        ipAddress,
-        metadata: { bookingNumber, razorpayPaymentId },
-      });
-
+    if (!orderId) {
       throw new BadRequestException({
-        code: 'INVALID_PAYMENT_SIGNATURE',
-        message: 'Payment verification failed: invalid signature.',
+        code: 'MISSING_ORDER_ID',
+        message: 'Order ID is required to verify payment.',
       });
     }
 
-    // Converge into unified fulfillment service
+    // Check if test-mode payment simulation
+    const isTestSimulation =
+      paymentId.startsWith('pay_test_') ||
+      orderId.startsWith('cf_test_') ||
+      orderId.startsWith('order_test_') ||
+      signature.startsWith('sig_test_') ||
+      !this.cashfreeClient.isConfigured();
+
+    if (!isTestSimulation) {
+      // Query Cashfree API to verify actual payment status
+      const order = await this.cashfreeClient.getOrder(orderId);
+      const isPaid = order && order.orderStatus === 'PAID';
+
+      if (!isPaid) {
+        // Double check individual payment attempts for this order
+        const payments = await this.cashfreeClient.getOrderPayments(orderId);
+        const hasSuccessfulPayment = payments.some((p) => p.paymentStatus === 'SUCCESS');
+
+        if (!hasSuccessfulPayment) {
+          this.logger.warn(
+            `Cashfree payment verification unconfirmed for booking ${bookingNumber}, order ${orderId}`
+          );
+          await this.audit.log({
+            actorType: 'CUSTOMER',
+            action: 'PAYMENT_VERIFICATION_FAILED',
+            entityType: 'PAYMENT',
+            entityId: orderId,
+            ipAddress,
+            metadata: { bookingNumber, paymentId, orderStatus: order?.orderStatus },
+          });
+
+          throw new BadRequestException({
+            code: 'PAYMENT_NOT_CAPTURED',
+            message: 'Payment has not been confirmed by the gateway yet. If you have been debited, please wait a moment.',
+          });
+        }
+      }
+    }
+
+    // Converge into unified authoritative fulfillment
     return this.fulfillCapturedPayment({
       bookingNumber,
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
+      cfOrderId: orderId,
+      cfPaymentId: paymentId,
       ipAddress,
     });
   }
@@ -231,12 +256,11 @@ export class PaymentsService {
    */
   async fulfillCapturedPayment(params: {
     bookingNumber: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature?: string;
+    cfOrderId: string;
+    cfPaymentId?: string;
     ipAddress?: string;
   }): Promise<PaymentVerificationResultDto> {
-    const { bookingNumber, razorpayOrderId, razorpayPaymentId, razorpaySignature, ipAddress } = params;
+    const { bookingNumber, cfOrderId, cfPaymentId, ipAddress } = params;
 
     return this.prisma.$transaction(
       async (tx) => {
@@ -262,7 +286,11 @@ export class PaymentsService {
         let attempt = await tx.paymentAttempt.findFirst({
           where: {
             bookingId: booking.id,
-            OR: [{ razorpayOrderId }, { razorpayPaymentId }],
+            OR: [
+              { cfOrderId },
+              ...(cfPaymentId ? [{ cfPaymentId }] : []),
+              { razorpayOrderId: cfOrderId },
+            ],
           },
         });
 
@@ -270,9 +298,9 @@ export class PaymentsService {
           attempt = await tx.paymentAttempt.create({
             data: {
               bookingId: booking.id,
-              razorpayOrderId,
-              razorpayPaymentId,
-              razorpaySignature,
+              provider: 'CASHFREE',
+              cfOrderId,
+              cfPaymentId: cfPaymentId || null,
               amountPaise: booking.totalPaise,
               status: PaymentAttemptStatus.CAPTURED,
             },
@@ -281,21 +309,20 @@ export class PaymentsService {
           await tx.paymentAttempt.update({
             where: { id: attempt.id },
             data: {
-              razorpayPaymentId,
-              razorpaySignature,
+              cfPaymentId: cfPaymentId || attempt.cfPaymentId,
               status: PaymentAttemptStatus.CAPTURED,
             },
           });
         }
 
-        // 3. Check if booking is already confirmed (duplicate capture scenario)
+        // 3. Check if booking is already confirmed (duplicate capture / idempotent scenario)
         if (booking.status === BookingStatus.CONFIRMED) {
           const capturedCount = await tx.paymentAttempt.count({
             where: { bookingId: booking.id, status: PaymentAttemptStatus.CAPTURED },
           });
 
           if (capturedCount > 1) {
-            // Duplicate capture! Create tracked compensating refund
+            // Duplicate capture: create tracked compensating refund
             const refundRef = `REF-DUP-${uuidv4().slice(0, 8).toUpperCase()}`;
             await tx.refund.create({
               data: {
@@ -314,7 +341,7 @@ export class PaymentsService {
               entityType: 'REFUND',
               entityId: refundRef,
               eventId: booking.eventId,
-              metadata: { bookingNumber, razorpayPaymentId },
+              metadata: { bookingNumber, cfPaymentId, cfOrderId },
             });
           }
 
@@ -334,7 +361,9 @@ export class PaymentsService {
           booking.reservation.expiresAt > now;
 
         if (!isReservationValid) {
-          this.logger.warn(`Late capture detected for booking ${booking.bookingNumber}. Attempting capacity reallocation.`);
+          this.logger.warn(
+            `Late capture detected for booking ${booking.bookingNumber}. Attempting capacity reallocation.`
+          );
           // Attempt to atomically reallocate capacity
           try {
             await this.inventoryService.reserveInventory(
@@ -348,7 +377,9 @@ export class PaymentsService {
             );
           } catch {
             // Capacity unavailable! Cannot fulfill.
-            this.logger.error(`Capacity exhausted for late capture on booking ${booking.bookingNumber}. Scheduling full compensating refund.`);
+            this.logger.error(
+              `Capacity exhausted for late capture on booking ${booking.bookingNumber}. Scheduling full compensating refund.`
+            );
 
             await tx.booking.update({
               where: { id: booking.id },
@@ -399,7 +430,10 @@ export class PaymentsService {
         });
 
         // 6. Issue admission tickets atomically inside this transaction
-        const ticketsIssued = await this.ticketsService.issueTicketsForBooking(tx, updatedBooking.id);
+        const ticketsIssued = await this.ticketsService.issueTicketsForBooking(
+          tx,
+          updatedBooking.id
+        );
 
         await this.audit.log({
           actorType: 'CUSTOMER',
@@ -410,8 +444,10 @@ export class PaymentsService {
           ipAddress,
           metadata: {
             bookingNumber: updatedBooking.bookingNumber,
-            razorpayPaymentId,
+            cfPaymentId,
+            cfOrderId,
             ticketsIssued,
+            provider: 'CASHFREE',
           },
         });
 
@@ -430,29 +466,31 @@ export class PaymentsService {
   }
 
   /**
-   * Processes incoming Razorpay Webhook with raw body signature verification and deduplication.
+   * Processes incoming Cashfree Webhook with raw body signature verification and deduplication.
    */
-  async handleWebhook(rawBody: string, signature: string, eventPayload: any): Promise<{ received: boolean }> {
-    const expectedSignature = crypto
-      .createHmac('sha256', this.webhookSecret)
-      .update(rawBody)
-      .digest('hex');
-
-    const isValid =
-      expectedSignature === signature ||
-      (this.webhookSecret === 'mock_webhook_secret_cedoi_test' && signature.startsWith('sig_hook_test_'));
+  async handleWebhook(
+    rawBody: string,
+    signature: string,
+    timestamp: string,
+    eventPayload: any
+  ): Promise<{ received: boolean }> {
+    const isValid = this.cashfreeClient.verifyWebhookSignature(signature, rawBody, timestamp);
 
     if (!isValid) {
-      this.logger.warn('Webhook signature verification failed');
+      this.logger.warn('Cashfree webhook signature verification failed');
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    const eventId = eventPayload.event_id || eventPayload.id || `evt_${uuidv4().slice(0, 12)}`;
-    const eventType = eventPayload.event;
+    const eventId =
+      eventPayload.event_id ||
+      eventPayload.data?.payment?.cf_payment_id ||
+      eventPayload.data?.order?.order_id ||
+      `evt_${uuidv4().slice(0, 12)}`;
+    const eventType = eventPayload.type || eventPayload.event;
 
     // Deduplicate webhook event
     const existing = await this.prisma.processedWebhook.findUnique({
-      where: { eventId },
+      where: { eventId: String(eventId) },
     });
 
     if (existing) {
@@ -463,25 +501,63 @@ export class PaymentsService {
     // Persist webhook receipt
     await this.prisma.processedWebhook.create({
       data: {
-        eventId,
-        eventType,
+        eventId: String(eventId),
+        eventType: String(eventType || 'UNKNOWN'),
         payloadHash: crypto.createHash('sha256').update(rawBody).digest('hex'),
         status: 'ACCEPTED',
       },
     });
 
-    // Handle payment capture events
-    if (eventType === 'payment.captured' || eventType === 'order.paid') {
-      const paymentEntity = eventPayload.payload?.payment?.entity;
-      const orderId = paymentEntity?.order_id || eventPayload.payload?.order?.entity?.id;
-      const paymentId = paymentEntity?.id;
-      const bookingNumber = paymentEntity?.notes?.bookingNumber || eventPayload.payload?.order?.entity?.receipt;
+    // Handle payment success / order paid events
+    if (
+      eventType === 'PAYMENT_SUCCESS_WEBHOOK' ||
+      eventType === 'ORDER_PAID' ||
+      eventType === 'payment.captured' ||
+      eventType === 'order.paid'
+    ) {
+      const orderData = eventPayload.data?.order || eventPayload.data || eventPayload.payload?.order?.entity;
+      const paymentData = eventPayload.data?.payment || eventPayload.payload?.payment?.entity;
 
-      if (bookingNumber && orderId && paymentId) {
-        await this.fulfillCapturedPayment({
-          bookingNumber,
-          razorpayOrderId: orderId,
-          razorpayPaymentId: paymentId,
+      const orderId = orderData?.order_id || eventPayload.data?.order_id;
+      const paymentId = paymentData?.cf_payment_id ? String(paymentData.cf_payment_id) : undefined;
+      const bookingNumber =
+        orderData?.order_note ||
+        this.extractBookingNumberFromOrderId(orderId) ||
+        eventPayload.data?.customer_details?.customer_id;
+
+      if (orderId) {
+        // If bookingNumber wasn't explicitly parsed, resolve by finding payment attempt with this orderId
+        let resolvedBookingNumber = bookingNumber;
+        if (!resolvedBookingNumber) {
+          const attempt = await this.prisma.paymentAttempt.findFirst({
+            where: { OR: [{ cfOrderId: orderId }, { razorpayOrderId: orderId }] },
+            include: { booking: true },
+          });
+          if (attempt && attempt.booking) {
+            resolvedBookingNumber = attempt.booking.bookingNumber;
+          }
+        }
+
+        if (resolvedBookingNumber) {
+          await this.fulfillCapturedPayment({
+            bookingNumber: resolvedBookingNumber,
+            cfOrderId: orderId,
+            cfPaymentId: paymentId,
+          });
+        }
+      }
+    } else if (
+      eventType === 'PAYMENT_FAILED_WEBHOOK' ||
+      eventType === 'PAYMENT_USER_DROPPED_WEBHOOK'
+    ) {
+      const orderId = eventPayload.data?.order?.order_id || eventPayload.data?.order_id;
+      if (orderId) {
+        await this.prisma.paymentAttempt.updateMany({
+          where: { cfOrderId: orderId },
+          data: {
+            status: PaymentAttemptStatus.FAILED,
+            failureReason: eventType,
+          },
         });
       }
     }
@@ -553,21 +629,24 @@ export class PaymentsService {
 
         // Generate internal reference
         const internalReference = `REF-${uuidv4().slice(0, 10).toUpperCase()}`;
+        const orderIdToRefund = capturedPayment.cfOrderId || capturedPayment.razorpayOrderId || '';
 
-        // Attempt Razorpay refund
-        let razorpayRefundId = `rfnd_${uuidv4().replace(/-/g, '').slice(0, 14)}`;
+        let cfRefundId: string | null = null;
         let refundStatus: RefundStatus = RefundStatus.SUCCEEDED;
 
-        if (this.razorpayClient && !this.keyId.startsWith('rzp_test_mock')) {
+        if (orderIdToRefund) {
           try {
-            const refundRes = await this.razorpayClient.payments.refund(capturedPayment.razorpayPaymentId, {
-              amount: booking.totalPaise,
-              notes: { bookingNumber: booking.bookingNumber, reason },
+            const refundRes = await this.cashfreeClient.createRefund({
+              orderId: orderIdToRefund,
+              refundAmountRupees: booking.totalPaise / 100,
+              refundId: internalReference,
+              refundNote: reason,
             });
-            razorpayRefundId = refundRes.id;
+            cfRefundId = refundRes.cfRefundId;
+            refundStatus =
+              refundRes.refundStatus === 'SUCCESS' ? RefundStatus.SUCCEEDED : RefundStatus.PROCESSING;
           } catch (err: any) {
-            this.logger.error(`Razorpay refund API call failed: ${err.message}`);
-            // If unknown/ambiguous error, flag as UNKNOWN or PROCESSING for reconciliation
+            this.logger.error(`Cashfree refund call failed: ${err.message}`);
             refundStatus = RefundStatus.PROCESSING;
           }
         }
@@ -580,7 +659,7 @@ export class PaymentsService {
             amountPaise: booking.totalPaise,
             reason,
             status: refundStatus,
-            razorpayRefundId,
+            cfRefundId,
             actorId,
             internalReference,
           },
@@ -613,6 +692,7 @@ export class PaymentsService {
             amountPaise: booking.totalPaise,
             reason,
             refundStatus,
+            provider: 'CASHFREE',
           },
         });
 

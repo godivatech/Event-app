@@ -59,7 +59,7 @@ export const Footer: React.FC = () => {
               Trust & Security
             </h4>
             <p className="text-xs text-gray-500 leading-relaxed">
-              All transactions are secured via Razorpay infrastructure. Admission passes feature 256-bit cryptographically unique QR credentials verified at the gate.
+              All transactions are secured via Cashfree infrastructure. Admission passes feature 256-bit cryptographically unique QR credentials verified at the gate.
             </p>
             <div className="mt-4 pt-4 border-t border-gray-200 text-[11px] sm:text-xs text-gray-400">
               Currency: INR (₹) • Asia/Kolkata Timezone

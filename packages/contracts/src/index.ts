@@ -237,22 +237,35 @@ export interface CreatePaymentOrderDto {
   bookingNumber: string;
 }
 
-export interface RazorpayOrderResponseDto {
+export interface CashfreeOrderResponseDto {
   orderId: string;
+  paymentSessionId: string;
+  cfOrderId?: string;
   amountPaise: number;
+  amountRupees: number;
   currency: string;
-  keyId: string;
+  environment: 'SANDBOX' | 'PRODUCTION';
   bookingNumber: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string | null;
 }
 
+// Backward-compatible alias
+export type PaymentOrderResponseDto = CashfreeOrderResponseDto;
+export type RazorpayOrderResponseDto = CashfreeOrderResponseDto & { keyId?: string };
+
 export interface VerifyPaymentDto {
   bookingNumber: string;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
+  orderId?: string;
+  paymentId?: string;
+  signature?: string;
+  cfOrderId?: string;
+  cfPaymentId?: string;
+  // Legacy Razorpay compatibility fields
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
 }
 
 export interface PaymentVerificationResultDto {
