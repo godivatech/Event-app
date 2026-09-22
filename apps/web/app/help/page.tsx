@@ -51,7 +51,7 @@ export default function HelpPage() {
                 <span>What if I lost both my browser session and recovery code?</span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                For security reasons, phone numbers and emails alone cannot unlock tickets. If you have lost both your device session and your recovery code, contact organizer support with your Cashfree payment transaction ID or bank statement evidence. Authorized staff can verify your payment and assist you in recovering your booking.
+                For security reasons, phone numbers and emails alone cannot unlock tickets. If you have lost both your device session and your recovery code, contact organizer support with your payment transaction ID or bank statement evidence. Authorized staff can verify your payment and assist you in recovering your booking.
               </p>
             </div>
 

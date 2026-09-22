@@ -31,6 +31,8 @@ export default function BookingSuccessPage() {
   const [booking, setBooking] = useState<BookingDetailDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadConfirmedBooking() {
@@ -49,6 +51,34 @@ export default function BookingSuccessPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!booking) return;
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      const response = await fetch(`/api/v1/tickets/${booking.bookingNumber}/pdf`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Download failed (${response.status}). Please try again.`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CEDOI_${booking.bookingNumber}_Tickets.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setDownloadError(err.message || 'Could not download PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -105,14 +135,24 @@ export default function BookingSuccessPage() {
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href={`/api/v1/tickets/${booking.bookingNumber}/pdf`}
-                download
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-[12px] bg-[#08537B] hover:bg-[#064364] active:bg-[#053752] text-white font-bold text-xs sm:text-sm shadow-md transition-all"
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-[12px] bg-[#08537B] hover:bg-[#064364] active:bg-[#053752] disabled:opacity-60 text-white font-bold text-xs sm:text-sm shadow-md transition-all"
               >
-                <Download className="w-4 h-4" />
-                <span>Download Ticket PDF</span>
-              </a>
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Preparing PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Download Ticket PDF</span>
+                  </>
+                )}
+              </button>
 
               <button
                 type="button"
@@ -123,6 +163,13 @@ export default function BookingSuccessPage() {
                 <span>Print Passes</span>
               </button>
             </div>
+
+            {downloadError && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-[10px] px-4 py-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{downloadError}</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -93,7 +93,7 @@ export default function BookingReviewAndPaymentPage() {
     }
 
     if (typeof (window as any).Cashfree === 'undefined') {
-      setErrorMessage('Cashfree SDK is loading. You can also use the Instant Test-Mode Payment below.');
+      setErrorMessage('Payment gateway is still loading. Please use the Instant Test-Mode Payment below.');
       return;
     }
 
@@ -138,7 +138,7 @@ export default function BookingReviewAndPaymentPage() {
         });
     } catch (err: any) {
       setIsProcessing(false);
-      setErrorMessage(err.message || 'Could not open Cashfree checkout modal.');
+      setErrorMessage(err.message || 'Could not open checkout. Please retry.');
     }
   };
 
@@ -368,7 +368,7 @@ export default function BookingReviewAndPaymentPage() {
               <div className="pt-4 border-t border-slate-100 space-y-3">
                 <div className="flex items-center gap-2.5 text-xs text-slate-700 font-semibold">
                   <CreditCard className="w-4 h-4 text-[#08537B]" />
-                  <span>Cashfree Payment Gateway</span>
+                  <span>Secure Payment Gateway</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Pay securely via UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, or NetBanking.
@@ -389,7 +389,7 @@ export default function BookingReviewAndPaymentPage() {
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>Pay {formatPaise(booking.totalPaise)} with Cashfree</span>
+                      <span>Pay {formatPaise(booking.totalPaise)} Securely</span>
                     </>
                   )}
                 </button>

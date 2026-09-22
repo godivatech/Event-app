@@ -69,7 +69,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-200">
               <span className="text-gray-600">Primary Payment Gateway</span>
-              <span className="font-bold text-gray-900">Cashfree Payments</span>
+              <span className="font-bold text-gray-900">Secure Payments</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-200">

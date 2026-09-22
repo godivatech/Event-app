@@ -165,7 +165,7 @@ export default function TermsAndConditionsPage() {
             <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2 pl-11">
               <p>
                 3.1. <strong>Strict No-Refund Policy:</strong> All ticket bookings and pass reservations are strictly non-refundable and
-                non-cancellable once payment has been captured and confirmed via our payment gateway (Cashfree).
+                non-cancellable once payment has been captured and confirmed via our secure payment gateway.
               </p>
               <p>
                 3.2. <strong>Delegate Name Reassignment:</strong> If a registered delegate is unable to attend due to unforeseen
