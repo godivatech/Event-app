@@ -150,8 +150,8 @@ async function main() {
   const memberType = await prisma.ticketType.upsert({
     where: { id: `${event.id}-member-pass` },
     update: {
-      name: 'CEDOI Member Pass',
-      description: 'All-inclusive entry for CEDOI members: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
+      name: 'Delegate Admission Pass',
+      description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
       status: TicketTypeStatus.ACTIVE,
@@ -159,8 +159,8 @@ async function main() {
     create: {
       id: `${event.id}-member-pass`,
       eventId: event.id,
-      name: 'CEDOI Member Pass',
-      description: 'All-inclusive entry for CEDOI members: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
+      name: 'Delegate Admission Pass',
+      description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
       maxPerBooking: 10,

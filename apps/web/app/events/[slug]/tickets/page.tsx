@@ -188,19 +188,6 @@ export default function TicketSelectionPage() {
       <main className="flex-1 max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 w-full overflow-x-hidden">
         <StepIndicator currentStep={1} />
 
-        {/* Members Only Notice Banner */}
-        <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-amber-900">
-          <div className="flex items-center gap-2.5">
-            <Award className="w-5 h-5 text-[#EE8518] shrink-0" />
-            <div className="text-xs sm:text-sm font-bold uppercase tracking-wide">
-              Registration Open for CEDOI Members Only
-            </div>
-          </div>
-          <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#EE8518] text-white shrink-0">
-            Limited Seats!
-          </span>
-        </div>
-
         <div className="text-center max-w-2xl mx-auto mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Select Your Tickets

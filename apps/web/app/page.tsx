@@ -170,7 +170,7 @@ export default async function HomePage() {
               <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-xs text-slate-500">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Official CEDOI Member Access</span>
+                  <span>Verified Checkout</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-[#08537B] shrink-0" />
@@ -184,11 +184,8 @@ export default async function HomePage() {
         {/* Single Pass Ticket Showcase Section */}
         <section className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-            <span className="inline-block px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold uppercase tracking-wider mb-2">
-              Registration Open for CEDOI Members Only
-            </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Official Delegate Admission Pass
+              Official Delegate Event Pass
             </h2>
             <p className="mt-2 text-xs sm:text-sm text-slate-500">
               Transparent, all-inclusive pass with guaranteed seating, gourmet dining, and celebration benefits.
@@ -207,7 +204,7 @@ export default async function HomePage() {
                     All-Inclusive Delegate Pass
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-                    CEDOI Member Registration
+                    Delegate Event Pass
                   </h3>
                 </div>
               </div>
