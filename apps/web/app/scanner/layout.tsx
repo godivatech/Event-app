@@ -17,7 +17,7 @@ export default function ScannerLayout({
   const router = useRouter();
 
   // If on scanner login page, render children directly without chrome
-  const isLoginPage = pathname === '/scanner/login';
+  const isLoginPage = Boolean(pathname && pathname.startsWith('/scanner/login'));
 
   const [staff, setStaff] = useState<StaffProfileDto | null>(null);
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
@@ -32,7 +32,10 @@ export default function ScannerLayout({
     }
 
     // FAST-PATH 1: Synchronous token presence check
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('cedoi_scanner_token') || localStorage.getItem('cedoi_staff_token')
+        : null;
     if (!token) {
       setAuthStatus('unauthenticated');
       router.replace('/scanner/login');
@@ -58,6 +61,7 @@ export default function ScannerLayout({
         if (!isMounted) return;
         if (typeof window !== 'undefined') {
           try {
+            localStorage.removeItem('cedoi_scanner_token');
             localStorage.removeItem('cedoi_staff_token');
           } catch {}
         }

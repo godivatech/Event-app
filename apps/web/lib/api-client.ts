@@ -34,10 +34,22 @@ export async function apiClient<T>(
     'Content-Type': 'application/json',
   };
 
-  // Attach token from localStorage if present in browser
+  // Attach token from localStorage if present in browser (route-namespaced)
   if (!isServer) {
     try {
-      const storedToken = localStorage.getItem('cedoi_staff_token');
+      const currentPath = window.location.pathname || '';
+      let storedToken: string | null = null;
+      if (currentPath.startsWith('/scanner')) {
+        storedToken = localStorage.getItem('cedoi_scanner_token') || localStorage.getItem('cedoi_staff_token');
+      } else if (currentPath.startsWith('/admin')) {
+        storedToken = localStorage.getItem('cedoi_admin_token') || localStorage.getItem('cedoi_staff_token');
+      } else {
+        storedToken =
+          localStorage.getItem('cedoi_admin_token') ||
+          localStorage.getItem('cedoi_scanner_token') ||
+          localStorage.getItem('cedoi_staff_token');
+      }
+
       if (storedToken) {
         defaultHeaders['Authorization'] = `Bearer ${storedToken}`;
       }
@@ -108,15 +120,25 @@ export async function apiClient<T>(
   // Centralized 401 Unauthorized handling
   if (response.status === 401 || (data as any)?.error?.code === 'UNAUTHENTICATED') {
     if (!isServer) {
+      const currentPath = window.location.pathname || '';
       try {
-        localStorage.removeItem('cedoi_staff_token');
+        if (currentPath.startsWith('/admin')) {
+          localStorage.removeItem('cedoi_admin_token');
+          localStorage.removeItem('cedoi_staff_token');
+        } else if (currentPath.startsWith('/scanner')) {
+          localStorage.removeItem('cedoi_scanner_token');
+          localStorage.removeItem('cedoi_staff_token');
+        } else {
+          localStorage.removeItem('cedoi_admin_token');
+          localStorage.removeItem('cedoi_scanner_token');
+          localStorage.removeItem('cedoi_staff_token');
+        }
       } catch {}
 
       // Auto-redirect if on protected routes and not on login page
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
+      if (currentPath.startsWith('/admin') && !currentPath.startsWith('/admin/login')) {
         window.location.replace('/admin/login');
-      } else if (currentPath.startsWith('/scanner') && currentPath !== '/scanner/login') {
+      } else if (currentPath.startsWith('/scanner') && !currentPath.startsWith('/scanner/login')) {
         window.location.replace('/scanner/login');
       }
     }

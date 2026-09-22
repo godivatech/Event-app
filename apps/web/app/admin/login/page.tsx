@@ -13,20 +13,26 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already authenticated with valid token, fast-forward to dashboard
+  // If already authenticated with valid admin token, fast-forward to dashboard
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    if (typeof window === 'undefined') return;
+    const token = localStorage.getItem('cedoi_admin_token') || localStorage.getItem('cedoi_staff_token');
     if (token) {
       apiClient('api/v1/auth/me', { timeoutMs: 3000 })
         .then((profile: any) => {
-          if (profile?.role === 'SCANNER') {
-            router.replace('/scanner/scan');
-          } else {
+          if (profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN') {
             router.replace('/admin/dashboard');
+          } else {
+            // CRITICAL: Do NOT redirect to /scanner from admin login.
+            // Clear admin token scope so the user can enter admin credentials cleanly.
+            try {
+              localStorage.removeItem('cedoi_admin_token');
+            } catch {}
           }
         })
         .catch(() => {
           try {
+            localStorage.removeItem('cedoi_admin_token');
             localStorage.removeItem('cedoi_staff_token');
           } catch {}
         });
@@ -44,7 +50,13 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
         timeoutMs: 12000,
       });
+
+      if (res?.user?.role !== 'ADMIN' && res?.user?.role !== 'SUPER_ADMIN') {
+        throw new Error('Access denied: Scanner staff credentials cannot be used for Administrator Dashboard.');
+      }
+
       if (res?.token && typeof window !== 'undefined') {
+        localStorage.setItem('cedoi_admin_token', res.token);
         localStorage.setItem('cedoi_staff_token', res.token);
       }
       window.location.href = '/admin/dashboard';

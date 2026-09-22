@@ -81,7 +81,10 @@ export default function AdminReportsPage() {
   const handleDownload = async (type: 'sales' | 'tickets' | 'checkins') => {
     setDownloading(type);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('cedoi_admin_token') || localStorage.getItem('cedoi_staff_token')
+          : null;
       const headers: Record<string, string> = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;

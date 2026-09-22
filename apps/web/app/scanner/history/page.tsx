@@ -59,6 +59,7 @@ export default function ScannerHistoryPage() {
       ) {
         if (typeof window !== 'undefined') {
           try {
+            localStorage.removeItem('cedoi_scanner_token');
             localStorage.removeItem('cedoi_staff_token');
           } catch {}
         }

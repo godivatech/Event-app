@@ -45,7 +45,7 @@ export default function AdminLayout({
   const router = useRouter();
 
   // If on login page, render children directly without chrome
-  const isLoginPage = pathname === '/admin/login';
+  const isLoginPage = Boolean(pathname && pathname.startsWith('/admin/login'));
 
   const [staff, setStaff] = useState<StaffProfileDto | null>(null);
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
@@ -61,7 +61,10 @@ export default function AdminLayout({
     }
 
     // FAST-PATH 1: Synchronous token presence check
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('cedoi_admin_token') || localStorage.getItem('cedoi_staff_token'))
+      : null;
+
     if (!token) {
       setAuthStatus('unauthenticated');
       router.replace('/admin/login');
@@ -82,8 +85,14 @@ export default function AdminLayout({
         if (!isMounted) return;
 
         if (profile.role === UserRole.SCANNER) {
-          // Scanner staff cannot access admin console
-          router.replace('/scanner/scan');
+          // Scanner staff cannot access admin console - purge admin scope and stay on admin login
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('cedoi_admin_token');
+            } catch {}
+          }
+          setAuthStatus('unauthenticated');
+          router.replace('/admin/login');
           return;
         }
 
@@ -93,6 +102,7 @@ export default function AdminLayout({
         if (!isMounted) return;
         if (typeof window !== 'undefined') {
           try {
+            localStorage.removeItem('cedoi_admin_token');
             localStorage.removeItem('cedoi_staff_token');
           } catch {}
         }
@@ -114,6 +124,7 @@ export default function AdminLayout({
   const handleLogout = async () => {
     try {
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('cedoi_admin_token');
         localStorage.removeItem('cedoi_staff_token');
       }
       await apiClient('api/v1/auth/logout', { method: 'POST', timeoutMs: 5000 });

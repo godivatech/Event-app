@@ -15,15 +15,20 @@ export default function ScannerLoginPage() {
 
   // If already authenticated with valid token, fast-forward to scanner terminal
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cedoi_staff_token') : null;
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('cedoi_scanner_token') || localStorage.getItem('cedoi_staff_token')
+        : null;
     if (token) {
       apiClient('api/v1/auth/me', { timeoutMs: 3000 })
-        .then(() => {
-          router.replace('/scanner/scan');
+        .then((profile: any) => {
+          if (profile?.role === 'SCANNER' || profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN') {
+            router.replace('/scanner/scan');
+          }
         })
         .catch(() => {
           try {
-            localStorage.removeItem('cedoi_staff_token');
+            localStorage.removeItem('cedoi_scanner_token');
           } catch {}
         });
     }
@@ -41,6 +46,7 @@ export default function ScannerLoginPage() {
         timeoutMs: 12000,
       });
       if (res?.token && typeof window !== 'undefined') {
+        localStorage.setItem('cedoi_scanner_token', res.token);
         localStorage.setItem('cedoi_staff_token', res.token);
       }
       window.location.href = '/scanner/scan';

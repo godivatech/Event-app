@@ -33,6 +33,7 @@ export default function ScannerProfilePage() {
         if (!isMounted) return;
         if (typeof window !== 'undefined') {
           try {
+            localStorage.removeItem('cedoi_scanner_token');
             localStorage.removeItem('cedoi_staff_token');
           } catch {}
         }
@@ -53,6 +54,7 @@ export default function ScannerProfilePage() {
     setLoggingOut(true);
     try {
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('cedoi_scanner_token');
         localStorage.removeItem('cedoi_staff_token');
       }
       await apiClient('api/v1/auth/logout', { method: 'POST', timeoutMs: 5000 });
