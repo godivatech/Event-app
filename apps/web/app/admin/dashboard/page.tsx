@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
         <div className="p-6 rounded-2xl bg-white border border-gray-200 shadow-xs hover:shadow-sm transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Gross Collections
+              Total Revenue
             </span>
             <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
               <CreditCard className="w-4 h-4" />
@@ -397,27 +397,24 @@ export default function AdminDashboardPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Gross Captures</p>
+              <p className="text-xs font-semibold text-gray-500">Total Collected</p>
               <p className="text-xl font-extrabold text-gray-900 mt-1">
                 {metrics ? formatPaise(metrics.financials.grossCollectionsPaise) : '₹0'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Total captured payments</p>
             </div>
 
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Completed Refunds</p>
+              <p className="text-xs font-semibold text-gray-500">Refunds</p>
               <p className="text-xl font-extrabold text-rose-600 mt-1">
                 {metrics ? formatPaise(metrics.financials.refundsPaise) : '₹0'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Processed refunds</p>
             </div>
 
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Net Collections</p>
+              <p className="text-xs font-semibold text-gray-500">Net Revenue</p>
               <p className="text-xl font-extrabold text-emerald-700 mt-1">
                 {metrics ? formatPaise(metrics.financials.netCollectionsPaise) : '₹0'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Net retained revenue</p>
             </div>
           </div>
         </div>
