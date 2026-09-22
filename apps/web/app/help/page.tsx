@@ -31,7 +31,7 @@ export default function HelpPage() {
                 <span>How do I enter the summit using my ticket?</span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Present your on-screen QR code on your mobile browser or printed A4 PDF at the designated gate (Gate A for General Admission, Gate VIP for VIP and VVIP badge holders). Staff will scan your pass using an authorized camera terminal. Each QR is valid for a single entry.
+                Present your on-screen QR code on your mobile browser or printed A4 PDF at the auditorium entrance. Staff will scan your pass using an authorized camera terminal. Each QR is valid for a single entry.
               </p>
             </div>
 

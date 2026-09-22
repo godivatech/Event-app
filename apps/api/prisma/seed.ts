@@ -198,23 +198,17 @@ async function main() {
         customerPhone: '+919876543210',
         customerEmail: 'senthil.nathan@example.com',
         currency: 'INR',
-        subtotalPaise: 250000,
-        totalPaise: 250000,
+        subtotalPaise: 299800,
+        totalPaise: 299800,
         status: BookingStatus.CONFIRMED,
         recoveryCodeHash: recoveryCodeHash,
         items: {
           create: [
             {
-              ticketTypeId: generalType.id,
+              ticketTypeId: memberType.id,
               quantity: 2,
-              unitPricePaise: 50000,
-              lineTotalPaise: 100000,
-            },
-            {
-              ticketTypeId: vipType.id,
-              quantity: 1,
-              unitPricePaise: 150000,
-              lineTotalPaise: 150000,
+              unitPricePaise: 149900,
+              lineTotalPaise: 299800,
             },
           ],
         },
@@ -225,7 +219,7 @@ async function main() {
               razorpayOrderId: 'order_seed_001',
               razorpayPaymentId: 'pay_seed_001_captured',
               razorpaySignature: 'sig_seed_verified_signature',
-              amountPaise: 250000,
+              amountPaise: 299800,
               currency: 'INR',
               status: PaymentAttemptStatus.CAPTURED,
             },
@@ -235,7 +229,7 @@ async function main() {
       include: { items: true },
     });
 
-    // Create 3 tickets (2 General + 1 VIP)
+    // Create 2 Event Pass tickets
     for (const item of booking.items) {
       for (let i = 1; i <= item.quantity; i++) {
         const ticketNumber = `TKT-SEED-${item.ticketTypeId.split('-').pop()}-${i}`;
@@ -257,7 +251,7 @@ async function main() {
         });
 
         // Let's mark the first ticket as checked-in for demo data
-        if (i === 1 && item.ticketTypeId === generalType.id) {
+        if (i === 1) {
           await prisma.ticket.update({
             where: { id: ticket.id },
             data: { status: TicketStatus.USED },
@@ -271,7 +265,7 @@ async function main() {
               staffUserId: scannerStaff.id,
               requestId: `req-seed-checkin-${ticket.id}`,
               result: CheckInResult.SUCCESS,
-              notes: 'Admitted at South Gate',
+              notes: 'Admitted at Main Auditorium Entrance',
             },
           });
         }
