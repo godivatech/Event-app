@@ -6,11 +6,28 @@ import { Navbar } from '../../../../components/layout/Navbar';
 import { Footer } from '../../../../components/layout/Footer';
 import { StepIndicator } from '../../../../components/booking/StepIndicator';
 import { TicketCard } from '../../../../components/booking/TicketCard';
+import Link from 'next/link';
 import { apiClient, ApiError } from '../../../../lib/api-client';
 import { PublicEventDto, ReservationResponseDto } from '@cedoi/contracts';
 import { formatPaise } from '../../../../lib/formatters';
 import { VegVectorIcon, NonVegVectorIcon } from '@cedoi/ui';
-import { ArrowRight, ShieldCheck, AlertCircle, Loader2, Briefcase, MapPin, Utensils, CheckCircle2, Award, Building2 } from 'lucide-react';
+import {
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle,
+  Loader2,
+  Briefcase,
+  MapPin,
+  Utensils,
+  CheckCircle2,
+  Award,
+  Building2,
+  User,
+  ShieldAlert,
+  FileText,
+  X,
+  ExternalLink,
+} from 'lucide-react';
 import { TicketSelectionSkeleton } from '../../../../components/skeletons';
 
 export default function TicketSelectionPage() {
@@ -25,6 +42,10 @@ export default function TicketSelectionPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
+  const [age, setAge] = useState('');
+  const [ageWarning, setAgeWarning] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [memberType, setMemberType] = useState<'MEMBER' | 'NON_MEMBER'>('MEMBER');
   const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG'>('VEG');
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +94,22 @@ export default function TicketSelectionPage() {
     }
     setCustomerPhone(digits);
     setErrorMessage(null);
+  };
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setAge(val);
+    setErrorMessage(null);
+    if (!val) {
+      setAgeWarning(null);
+      return;
+    }
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num < 18) {
+      setAgeWarning('Admission is strictly restricted to delegates aged 18 and above.');
+    } else {
+      setAgeWarning(null);
+    }
   };
 
   // Calculate live totals
@@ -129,6 +166,22 @@ export default function TicketSelectionPage() {
       return;
     }
 
+    if (!age.trim()) {
+      setErrorMessage('Please enter your age. Admission is restricted to delegates aged 18 and above.');
+      return;
+    }
+
+    const parsedAge = parseInt(age, 10);
+    if (isNaN(parsedAge) || parsedAge < 18) {
+      setErrorMessage('Admission is strictly restricted to delegates aged 18 and above.');
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setErrorMessage('Please confirm that all delegates are at least 18 years old and agree to the Event Terms & Conditions.');
+      return;
+    }
+
     const items = Object.entries(quantities)
       .filter(([_, q]) => q > 0)
       .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }));
@@ -144,6 +197,8 @@ export default function TicketSelectionPage() {
           customerEmail: customerEmail.trim() || undefined,
           businessName: businessName.trim(),
           location: location.trim(),
+          age: parsedAge,
+          agreedToTerms: true,
           memberType,
           foodPreference,
           items,
@@ -330,7 +385,7 @@ export default function TicketSelectionPage() {
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                   City / Location <span className="text-red-500">*</span>
                 </label>
@@ -345,6 +400,44 @@ export default function TicketSelectionPage() {
                   />
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Age (Years) <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    18+ Only
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={18}
+                    max={120}
+                    required
+                    placeholder="e.g. 28"
+                    value={age}
+                    onChange={handleAgeChange}
+                    className={`w-full h-11 pl-10 pr-3.5 rounded-[10px] border text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+                      ageWarning
+                        ? 'border-rose-400 bg-rose-50/40 focus:ring-rose-200 focus:border-rose-500'
+                        : 'border-slate-300 focus:ring-[#08537B]/20 focus:border-[#08537B]'
+                    }`}
+                  />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                {ageWarning ? (
+                  <p className="text-[11px] font-semibold text-rose-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{ageWarning}</span>
+                  </p>
+                ) : (
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Strictly 18 years and above. Government ID required at check-in.
+                  </span>
+                )}
               </div>
             </div>
 
@@ -481,6 +574,62 @@ export default function TicketSelectionPage() {
             </div>
           </div>
 
+          {/* Section 3: Terms & Mandatory 18+ Agreement */}
+          <div className="bg-white rounded-[18px] p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5 text-amber-700 font-black text-sm">
+                18+
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <span>3. Terms of Admission & Age Policy</span>
+                    <span className="text-red-500">*</span>
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setTermsModalOpen(true)}
+                    className="text-xs font-bold text-[#08537B] hover:underline flex items-center gap-1"
+                  >
+                    <span>Read Full Terms</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Admission to CEDOI Awards 2026 is strictly restricted to delegates aged 18 and above. A valid government photo ID (Aadhaar, Passport, Driving License) is required at gate security. All bookings are non-refundable.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              <label className="flex items-start gap-3 cursor-pointer group select-none">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => {
+                    setAgreedToTerms(e.target.checked);
+                    setErrorMessage(null);
+                  }}
+                  className="w-5 h-5 mt-0.5 text-[#08537B] rounded-md border-slate-300 focus:ring-[#08537B] focus:ring-2 cursor-pointer transition-all"
+                />
+                <span className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed group-hover:text-slate-900 transition-colors">
+                  I confirm that all delegates on this booking are <strong>18 years of age or older</strong> and agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setTermsModalOpen(true);
+                    }}
+                    className="text-[#08537B] font-bold underline hover:text-[#063d5a]"
+                  >
+                    Event Terms & Conditions
+                  </button>{' '}
+                  and Delegate Code of Conduct.
+                </span>
+              </label>
+            </div>
+          </div>
+
           {/* Sticky Checkout Bar */}
           <div className="p-5 rounded-[18px] bg-[#08537B] text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
@@ -532,6 +681,87 @@ export default function TicketSelectionPage() {
             </button>
           </div>
         </form>
+
+        {/* Terms & Conditions Interactive Modal */}
+        {termsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-[22px] max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#08537B] flex items-center justify-center">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Terms of Admission Summary</h3>
+                    <p className="text-xs text-slate-500">CEDOI Awards 2026 • Madurai</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-start gap-2.5">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Strict 18+ Requirement:</strong> Admission is strictly prohibited to individuals under 18 years of age. Valid government photo ID (Aadhaar, Passport, Driving License) will be checked at entry.
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Key Admission Policies:</h4>
+                  <ul className="space-y-2 list-disc pl-4 text-xs text-slate-600">
+                    <li><strong>Non-Refundable:</strong> All passes are strictly non-refundable and non-cancellable upon payment.</li>
+                    <li><strong>Transferability:</strong> Delegate name reassignment permitted up to 48 hours prior to the event via support@cedoi.org.</li>
+                    <li><strong>Cryptographic QR Pass:</strong> Each QR code admits strictly one delegate. Duplicate scans will be blocked.</li>
+                    <li><strong>Banquet Catering:</strong> Vegetarian or Non-Vegetarian lunch preference chosen at booking is strictly adhered to.</li>
+                    <li><strong>Code of Conduct:</strong> Professional business decorum required. Organizers reserve the right to expel disruptive attendees without refund.</li>
+                    <li><strong>Media Consent:</strong> Attendees consent to photography and recording during the summit for promotional broadcasts.</li>
+                  </ul>
+                </div>
+
+                <div className="pt-2 text-center sm:text-left">
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#08537B] hover:underline"
+                  >
+                    <span>Open Complete Legal Terms & Conditions Page</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgreedToTerms(true);
+                    setTermsModalOpen(false);
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#08537B] text-white hover:bg-[#063d5a] transition-colors shadow-sm"
+                >
+                  I Agree to Terms
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />

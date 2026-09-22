@@ -219,6 +219,7 @@ model Booking {
   location               String?
   memberType             String         @default("NON_MEMBER")
   foodPreference         String         @default("VEG")
+  age                    Int?
   currency               String         @default("INR")
   subtotalPaise          Int
   totalPaise             Int
@@ -356,6 +357,7 @@ model Ticket {
   attendeePhone     String?
   businessName      String?
   location          String?
+  age               Int?
   memberType        String       @default("NON_MEMBER")
   foodPreference    String       @default("VEG")
   status            TicketStatus @default(ACTIVE)

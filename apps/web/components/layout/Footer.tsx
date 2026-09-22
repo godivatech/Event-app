@@ -41,6 +41,11 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/terms" className="hover:text-gray-900 transition-colors">
+                  Terms of Admission (18+)
+                </Link>
+              </li>
+              <li>
                 <Link href="/help" className="hover:text-gray-900 transition-colors">
                   Help & Organizer Contact
                 </Link>
@@ -70,7 +75,7 @@ export const Footer: React.FC = () => {
         <div className="mt-8 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4 text-center sm:text-left">
           <p>© {new Date().getFullYear()} CEDOI. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6">
-            <Link href="/help" className="hover:text-gray-900 transition-colors">Terms of Admission</Link>
+            <Link href="/terms" className="hover:text-gray-900 transition-colors">Terms of Admission</Link>
             <Link href="/help" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
             <Link href="/admin/login" className="hover:text-gray-900 transition-colors">Admin Portal</Link>
           </div>

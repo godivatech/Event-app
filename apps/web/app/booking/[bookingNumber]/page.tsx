@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Script from 'next/script';
 import { Navbar } from '../../../components/layout/Navbar';
 import { Footer } from '../../../components/layout/Footer';
@@ -309,6 +310,17 @@ export default function BookingReviewAndPaymentPage() {
                       <span className="font-semibold text-slate-800">{booking.location}</span>
                     </div>
                   )}
+                  {booking.age && (
+                    <div>
+                      <span className="text-slate-400 block">Age / Eligibility:</span>
+                      <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                        <span>{booking.age} yrs</span>
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">
+                          18+ Verified
+                        </span>
+                      </span>
+                    </div>
+                  )}
                   <div>
                     <span className="text-slate-400 block mb-1">Membership Status:</span>
                     <MemberTypeBadge memberType={booking.memberType} size="sm" fullLabel />
@@ -317,6 +329,13 @@ export default function BookingReviewAndPaymentPage() {
                     <span className="text-slate-400 block mb-1">Meal / Catering:</span>
                     <FoodPreferenceBadge preference={booking.foodPreference} size="sm" fullLabel />
                   </div>
+                </div>
+
+                <div className="mt-3 p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[11px] text-slate-600 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#08537B] shrink-0" />
+                  <span>
+                    <strong>18+ Age Verified:</strong> All delegates must present matching government photo ID at the entrance gate.
+                  </span>
                 </div>
               </div>
             </div>
@@ -360,12 +379,12 @@ export default function BookingReviewAndPaymentPage() {
                   type="button"
                   onClick={handleOpenCashfree}
                   disabled={isProcessing || !orderData}
-                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-[12px] bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-[12px] bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] disabled:opacity-50 text-white font-extrabold text-sm shadow-md transition-all cursor-pointer"
                 >
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Processing Payment...</span>
+                      <span>Opening Secure Checkout...</span>
                     </>
                   ) : (
                     <>
@@ -374,6 +393,14 @@ export default function BookingReviewAndPaymentPage() {
                     </>
                   )}
                 </button>
+
+                <p className="text-[11px] text-center text-slate-400">
+                  By clicking Pay, you agree to the{' '}
+                  <Link href="/terms" target="_blank" className="text-[#08537B] underline font-medium hover:text-[#063d5a]">
+                    CEDOI Terms of Admission
+                  </Link>{' '}
+                  and 18+ policy.
+                </p>
               </div>
 
               {/* Developer Test Mode Harness */}

@@ -70,6 +70,22 @@ export class BookingsService {
     const memberType = dto.memberType === 'MEMBER' ? 'MEMBER' : 'NON_MEMBER';
     const foodPreference = dto.foodPreference === 'NON_VEG' ? 'NON_VEG' : 'VEG';
 
+    // Age requirement validation (Strictly 18+)
+    if (dto.age === undefined || dto.age === null || String(dto.age).trim() === '') {
+      throw new BadRequestException({
+        code: 'MISSING_AGE',
+        message: 'Age is required. Admission is strictly restricted to delegates aged 18 and above.',
+      });
+    }
+
+    const age = Number(dto.age);
+    if (isNaN(age) || age < 18) {
+      throw new BadRequestException({
+        code: 'AGE_RESTRICTION_FAILED',
+        message: 'Admission is strictly restricted to delegates aged 18 and above.',
+      });
+    }
+
     // Generate readable booking number and strong recovery code
     const bookingNumber = CryptoUtil.generateBookingNumber();
     const rawRecoveryCode = CryptoUtil.generateRecoveryCode();
@@ -104,6 +120,7 @@ export class BookingsService {
             customerEmail,
             businessName,
             location,
+            age,
             memberType,
             foodPreference,
             currency: 'INR',
@@ -278,6 +295,7 @@ export class BookingsService {
       customerEmail: booking.customerEmail,
       businessName: booking.businessName,
       location: booking.location,
+      age: booking.age ?? null,
       memberType: booking.memberType as any,
       foodPreference: booking.foodPreference as any,
       currency: booking.currency,

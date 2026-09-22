@@ -100,6 +100,7 @@ export class TicketsService {
             attendeePhone: booking.customerPhone,
             businessName: booking.businessName,
             location: booking.location,
+            age: booking.age,
             memberType: booking.memberType,
             foodPreference: booking.foodPreference,
             status: TicketStatus.ACTIVE,

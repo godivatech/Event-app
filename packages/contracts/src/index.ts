@@ -154,6 +154,8 @@ export interface CreateReservationDto {
   customerEmail?: string;
   businessName?: string;
   location?: string;
+  age?: number;
+  agreedToTerms?: boolean;
   memberType?: MemberType;
   foodPreference?: FoodPreference;
   items: ReservationItemSelection[];
@@ -191,6 +193,7 @@ export interface BookingDetailDto {
   customerEmail?: string | null;
   businessName?: string | null;
   location?: string | null;
+  age?: number | null;
   memberType?: MemberType;
   foodPreference?: FoodPreference;
   currency: string;
