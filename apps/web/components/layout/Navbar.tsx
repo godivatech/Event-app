@@ -23,18 +23,8 @@ export const Navbar: React.FC = () => {
         {/* Navigation Actions */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <Link
-            href="/scanner/login"
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300 rounded-[10px] transition-all whitespace-nowrap"
-            title="Gate Staff Scanner Login"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#08537B] shrink-0" />
-            <span className="hidden sm:inline">Staff Portal</span>
-            <span className="sm:hidden">Staff</span>
-          </Link>
-
-          <Link
             href="/events/cedoi-awards-2026/tickets"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white bg-[#EE8518] hover:bg-[#d6720f] active:bg-[#ab4e10] rounded-[10px] shadow-sm transition-all whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white bg-[#EE8518] hover:bg-[#d6720f] active:bg-[#ab4e10] rounded-[10px] shadow-sm transition-all whitespace-nowrap"
           >
             <Ticket className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span>Book Tickets</span>
