@@ -240,11 +240,6 @@ export default function AdminDashboardPage() {
               <div className="text-2xl font-black text-emerald-900 mt-2 font-mono">
                 {metrics?.catering?.totalVeg ?? 0}
               </div>
-              <p className="text-[11px] text-emerald-700 mt-0.5">
-                {metrics && metrics.tickets.totalSold > 0
-                  ? Math.round(((metrics.catering?.totalVeg ?? 0) / metrics.tickets.totalSold) * 100)
-                  : 0}% of confirmed attendees
-              </p>
             </div>
 
             <div className="p-4 rounded-xl bg-red-50/70 border border-red-200">
@@ -256,11 +251,6 @@ export default function AdminDashboardPage() {
               <div className="text-2xl font-black text-red-900 mt-2 font-mono">
                 {metrics?.catering?.totalNonVeg ?? 0}
               </div>
-              <p className="text-[11px] text-red-700 mt-0.5">
-                {metrics && metrics.tickets.totalSold > 0
-                  ? Math.round(((metrics.catering?.totalNonVeg ?? 0) / metrics.tickets.totalSold) * 100)
-                  : 0}% of confirmed attendees
-              </p>
             </div>
           </div>
         </div>
@@ -297,11 +287,6 @@ export default function AdminDashboardPage() {
               <div className="text-2xl font-black text-[#08537B] mt-2 font-mono">
                 {metrics?.membership?.totalMembers ?? 0}
               </div>
-              <p className="text-[11px] text-blue-700 mt-0.5">
-                {metrics && metrics.tickets.totalSold > 0
-                  ? Math.round(((metrics.membership?.totalMembers ?? 0) / metrics.tickets.totalSold) * 100)
-                  : 0}% of registered delegates
-              </p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -311,11 +296,6 @@ export default function AdminDashboardPage() {
               <div className="text-2xl font-black text-slate-900 mt-2 font-mono">
                 {metrics?.membership?.totalNonMembers ?? 0}
               </div>
-              <p className="text-[11px] text-slate-600 mt-0.5">
-                {metrics && metrics.tickets.totalSold > 0
-                  ? Math.round(((metrics.membership?.totalNonMembers ?? 0) / metrics.tickets.totalSold) * 100)
-                  : 0}% of registered delegates
-              </p>
             </div>
           </div>
         </div>
