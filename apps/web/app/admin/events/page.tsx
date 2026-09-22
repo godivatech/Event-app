@@ -84,7 +84,7 @@ export default function AdminEventsPage() {
             Events Configuration
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Manage multi-category admissions, gates, venues, and public availability
+            Manage event admissions, gates, venue, and public availability
           </p>
         </div>
 

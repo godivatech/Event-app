@@ -141,7 +141,10 @@ export class EventsService {
   async getAllAdminEvents() {
     return this.prisma.event.findMany({
       include: {
-        ticketTypes: true,
+        ticketTypes: {
+          where: { status: TicketTypeStatus.ACTIVE },
+          orderBy: { sortOrder: 'asc' },
+        },
         gates: true,
         _count: {
           select: {

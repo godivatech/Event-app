@@ -18,10 +18,13 @@ export class ReportsService {
    */
   async getDashboardMetrics(eventId?: string): Promise<AdminDashboardMetricsDto> {
     const event = eventId
-      ? await this.prisma.event.findUnique({ where: { id: eventId }, include: { ticketTypes: true } })
+      ? await this.prisma.event.findUnique({
+          where: { id: eventId },
+          include: { ticketTypes: { where: { status: 'ACTIVE' }, orderBy: { sortOrder: 'asc' } } },
+        })
       : await this.prisma.event.findFirst({
           where: { status: 'PUBLISHED' },
-          include: { ticketTypes: true },
+          include: { ticketTypes: { where: { status: 'ACTIVE' }, orderBy: { sortOrder: 'asc' } } },
           orderBy: { startsAt: 'asc' },
         });
 

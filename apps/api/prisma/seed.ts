@@ -112,14 +112,14 @@ async function main() {
     },
   });
 
-  const gateVip = await prisma.gate.upsert({
-    where: { eventId_code: { eventId: event.id, code: 'GATE-VIP' } },
-    update: { name: 'VIP & Dignitary Entrance', isActive: true },
+  const gateB = await prisma.gate.upsert({
+    where: { eventId_code: { eventId: event.id, code: 'GATE-B' } },
+    update: { name: 'North Auditorium Entrance', isActive: true },
     create: {
       eventId: event.id,
-      name: 'VIP & Dignitary Entrance',
-      code: 'GATE-VIP',
-      description: 'Dedicated gate for speakers and VIP dignitaries',
+      name: 'North Auditorium Entrance',
+      code: 'GATE-B',
+      description: 'Secondary entrance for CEDOI Awards attendees',
       isActive: true,
     },
   });
