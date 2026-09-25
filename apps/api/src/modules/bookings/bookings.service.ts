@@ -74,20 +74,46 @@ export class BookingsService {
     const membershipCode = isMember ? dto.membershipCode?.trim() || null : null;
     const foodPreference = dto.foodPreference === 'NON_VEG' ? 'NON_VEG' : 'VEG';
 
-    // Validate membership code for CEDOI Members (Strict Whitelist)
+    // Security check: Quantity limits (anti-resource-starvation)
+    const totalRequestedTickets = (dto.items || []).reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+    if (totalRequestedTickets <= 0 || totalRequestedTickets > 20) {
+      throw new BadRequestException({
+        code: 'INVALID_TICKET_QUANTITY',
+        message: 'Ticket quantity must be between 1 and 20 per booking.',
+      });
+    }
+
+    // Validate membership code for CEDOI Members (Strict Whitelist + Security Hardening)
     const validMemberCodes = (
       process.env.VALID_MEMBERSHIP_CODES?.split(',') || ['CEDOI0014']
     ).map((c) => c.trim().toUpperCase());
 
     if (isMember) {
-      const normalizedCode = membershipCode ? membershipCode.trim().toUpperCase() : '';
-      if (!normalizedCode) {
+      const rawCode = membershipCode ? membershipCode.trim() : '';
+      if (!rawCode) {
         throw new BadRequestException({
           code: 'MISSING_MEMBERSHIP_CODE',
           message: 'CEDOI Membership Code is required for member registrations.',
         });
       }
-      if (!validMemberCodes.includes(normalizedCode)) {
+
+      // Security validation: Strict length and alphanumeric format constraints
+      if (rawCode.length < 3 || rawCode.length > 32 || !/^[A-Za-z0-9_-]+$/.test(rawCode)) {
+        this.logger.warn(`[Security Alert] Malformed membership code format: "${rawCode.slice(0, 10)}" from phone: ${normalizedPhone}`);
+        throw new BadRequestException({
+          code: 'INVALID_MEMBERSHIP_CODE',
+          message: 'Invalid CEDOI Membership Code format. Only authorized alphanumeric member codes are accepted.',
+        });
+      }
+
+      const normalizedCode = rawCode.toUpperCase();
+      // Side-channel timing attack safe comparison
+      const isAuthorized = validMemberCodes.some((authorizedCode) =>
+        CryptoUtil.secureCompare(normalizedCode, authorizedCode)
+      );
+
+      if (!isAuthorized) {
+        this.logger.warn(`[Security Warning] Unauthorized membership code attempt: "${normalizedCode.slice(0, 3)}***" for phone: ${normalizedPhone}`);
         throw new BadRequestException({
           code: 'INVALID_MEMBERSHIP_CODE',
           message: 'Invalid CEDOI Membership Code. Only authorized member codes are accepted.',

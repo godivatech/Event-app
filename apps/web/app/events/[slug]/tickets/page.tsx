@@ -342,7 +342,22 @@ export default function TicketSelectionPage() {
         router.push(`/booking/${reservation.bookingNumber}`);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to reserve tickets. Please check availability and try again.');
+      const msg = err.message || 'Failed to reserve tickets. Please check availability and try again.';
+      setErrorMessage(msg);
+      if (
+        msg.toLowerCase().includes('membership') ||
+        err.code === 'INVALID_MEMBERSHIP_CODE' ||
+        err.code === 'MISSING_MEMBERSHIP_CODE'
+      ) {
+        setMembershipCodeError(msg);
+        if (typeof document !== 'undefined') {
+          const elem = document.getElementById('membership-code-input');
+          if (elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elem.focus();
+          }
+        }
+      }
       setIsSubmitting(false);
     }
   };
@@ -654,6 +669,10 @@ export default function TicketSelectionPage() {
                       id="membership-code-input"
                       type="text"
                       required
+                      maxLength={32}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       placeholder="Enter your CEDOI Member Code"
                       value={membershipCode}
                       onChange={(e) => {

@@ -81,4 +81,17 @@ export class CryptoUtil {
     const randomHex = crypto.randomBytes(4).toString('hex').toUpperCase();
     return `BK-${dateStr}-${randomHex}`;
   }
+
+  /**
+   * Constant-time string comparison to prevent timing attacks.
+   */
+  static secureCompare(a: string, b: string): boolean {
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    if (bufA.length !== bufB.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
 }
+
