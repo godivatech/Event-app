@@ -662,17 +662,10 @@ export default function TicketSelectionPage() {
                     />
                     <Award className="w-4 h-4 text-[#08537B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
-                  {membershipCodeError ? (
+                  {membershipCodeError && (
                     <p className="text-[11px] font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>{membershipCodeError}</span>
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-slate-600 mt-1.5 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                      <span>
-                        Enter your valid CEDOI membership code. Direct pass issuance with internal offline verification.
-                      </span>
                     </p>
                   )}
                 </div>
