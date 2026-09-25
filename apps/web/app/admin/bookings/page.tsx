@@ -407,18 +407,18 @@ export default function AdminBookingsPage() {
                     <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
                       {formatPaise(b.totalPaise ?? b.totalAmountPaise ?? 0)}
                     </td>
-                    <td className="py-3.5 px-4">
-                      <div className="space-y-1">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
                         <StatusBadge status={b.status} size="sm" />
                         {b.memberType === 'MEMBER' && (
                           <div>
                             {b.paymentStatus === 'PAID' ? (
-                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px]">
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
                                 <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
                                 <span>PAID</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">
+                              <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
                                 <Clock className="w-2.5 h-2.5 text-amber-600" />
                                 <span>PENDING (Offline)</span>
                               </span>
@@ -427,19 +427,19 @@ export default function AdminBookingsPage() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center justify-end gap-2">
                         {b.memberType === 'MEMBER' && b.paymentStatus !== 'PAID' && (
                           <button
                             onClick={() => handleMarkAsPaid(b.id)}
                             disabled={markingPaidId === b.id}
-                            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold inline-flex items-center gap-1 transition shadow-xs disabled:opacity-50"
+                            className="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
                             title="Mark Member Payment as Received & Verified"
                           >
                             {markingPaidId === b.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
                             ) : (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                             )}
                             <span>Mark Paid</span>
                           </button>
@@ -451,10 +451,10 @@ export default function AdminBookingsPage() {
                             setRefundError(null);
                             setRefundSuccess(null);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold inline-flex items-center gap-1.5 transition shadow-xs"
+                          className="h-8 px-3 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs"
                         >
-                          <Eye className="w-3.5 h-3.5 text-[#08537B]" />
-                          Inspect
+                          <Eye className="w-3.5 h-3.5 text-[#08537B] shrink-0" />
+                          <span>Inspect</span>
                         </button>
                       </div>
                     </td>
