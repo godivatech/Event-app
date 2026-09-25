@@ -86,14 +86,15 @@ export default function BookingReviewAndPaymentPage() {
   const handleOpenCashfree = () => {
     if (!orderData) return;
 
-    // Check if running in simulated offline/test mode
     if (orderData.paymentSessionId.startsWith('session_sim_') || orderData.paymentSessionId.startsWith('session_test_')) {
-      handleSimulateTestPayment();
+      setErrorMessage(
+        'Cashfree session was generated in dev-simulation mode because your Cashfree Payment Gateway product is not active yet. Click "Simulate Cashfree Payment" below to test offline, or check your Cashfree API keys.'
+      );
       return;
     }
 
     if (typeof (window as any).Cashfree === 'undefined') {
-      setErrorMessage('Payment gateway is still loading. Please use the Instant Test-Mode Payment below.');
+      setErrorMessage('Cashfree SDK is still loading in your browser. Please wait a moment and try again.');
       return;
     }
 
@@ -128,17 +129,15 @@ export default function BookingReviewAndPaymentPage() {
           }
         })
         .catch(async (err: any) => {
-          thisLoggerOrCatch: {
-            setIsProcessing(false);
-            const confirmed = await checkBackendPaymentStatus();
-            if (!confirmed && err?.message) {
-              setErrorMessage(err.message);
-            }
+          setIsProcessing(false);
+          const confirmed = await checkBackendPaymentStatus();
+          if (!confirmed && err?.message) {
+            setErrorMessage(err.message);
           }
         });
     } catch (err: any) {
       setIsProcessing(false);
-      setErrorMessage(err.message || 'Could not open checkout. Please retry.');
+      setErrorMessage(err.message || 'Could not open Cashfree checkout modal. Please retry.');
     }
   };
 

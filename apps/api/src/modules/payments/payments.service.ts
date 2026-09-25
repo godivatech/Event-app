@@ -102,7 +102,15 @@ export class PaymentsService {
 
     // Reuse existing attempt if still valid (avoids duplicate order creation on page refreshes)
     const existingAttempt = booking.paymentAttempts[0];
-    if (existingAttempt && (existingAttempt.cfOrderId || existingAttempt.cfPaymentSessionId)) {
+    const isSimulated =
+      existingAttempt?.cfPaymentSessionId?.startsWith('session_sim_') ||
+      existingAttempt?.cfPaymentSessionId?.startsWith('session_test_');
+
+    if (
+      existingAttempt &&
+      existingAttempt.cfPaymentSessionId &&
+      (!isSimulated || !this.cashfreeClient.isConfigured())
+    ) {
       return {
         orderId: existingAttempt.cfOrderId || existingAttempt.id,
         paymentSessionId: existingAttempt.cfPaymentSessionId || '',

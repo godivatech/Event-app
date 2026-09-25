@@ -194,22 +194,8 @@ export class CashfreeClient {
         this.logger.error(
           `Cashfree createOrder API error: ${res.status} - ${JSON.stringify(body)}`
         );
-        // If credentials rejected in sandbox or temporary issue, fall back to simulated test mode
-        if (this.env === 'SANDBOX') {
-          this.logger.warn(
-            `Falling back to simulated test session in SANDBOX environment.`
-          );
-          return {
-            cfOrderId: `sim_cf_${Date.now()}`,
-            orderId: cleanOrderId,
-            paymentSessionId: `session_sim_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
-            orderStatus: 'ACTIVE',
-            orderAmount: input.amountRupees,
-            orderCurrency: input.currency || 'INR',
-          };
-        }
         throw new Error(
-          body.message || `Cashfree order creation failed with status ${res.status}`
+          body.message || `Cashfree order creation failed with status ${res.status}: ${JSON.stringify(body)}`
         );
       }
 
@@ -223,7 +209,7 @@ export class CashfreeClient {
       };
     } catch (err: any) {
       this.logger.error(`Cashfree createOrder network/runtime error: ${err.message}`);
-      if (this.env === 'SANDBOX' || !this.isConfigured()) {
+      if (!this.isConfigured()) {
         return {
           cfOrderId: `sim_cf_${Date.now()}`,
           orderId: cleanOrderId,
