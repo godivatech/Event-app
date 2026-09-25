@@ -164,17 +164,13 @@ export default function TermsAndConditionsPage() {
             </div>
             <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2 pl-11">
               <p>
-                3.1. <strong>Strict No-Refund Policy:</strong> All ticket bookings and pass reservations are strictly non-refundable and
-                non-cancellable once payment has been captured and confirmed via our secure payment gateway.
+                3.1. All ticket bookings and delegate registrations are final and strictly non-refundable. Once payment is confirmed, no refund or cancellation option is provided.
               </p>
               <p>
-                3.2. <strong>Delegate Name Reassignment:</strong> If a registered delegate is unable to attend due to unforeseen
-                business or personal commitments, the pass may be reassigned to a qualifying colleague or business associate (aged 18+) up to
-                <strong> 48 hours prior</strong> to the event date by contacting <code className="text-[#08537B] bg-blue-50 px-1.5 py-0.5 rounded">support@cedoi.org</code> with the booking number and recovery code.
+                3.2. Delegate Transfer: If a registered attendee cannot attend, the pass may be reassigned to an eligible colleague or business associate (aged 18+) up to 48 hours prior to the event date by writing to <code className="text-[#08537B] bg-blue-50 px-1.5 py-0.5 rounded">support@cedoi.org</code> with the booking number.
               </p>
               <p>
-                3.3. In the event of duplicate payment debits caused by banking gateway timeouts, verified excess amounts will be reconciled
-                and refunded to the original payment source within 5 to 7 business days.
+                3.3. In the event of duplicate payment debits caused by banking gateway network delays, verified excess amounts will be reconciled and credited back to the original payment method within 5 to 7 business days.
               </p>
             </div>
           </section>

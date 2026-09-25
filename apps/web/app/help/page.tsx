@@ -57,11 +57,11 @@ export default function HelpPage() {
 
             <div className="bg-white rounded-[16px] p-5 border border-slate-200 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 text-[#08537B]" />
                 <span>What is the cancellation and refund policy?</span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Admissions can be cancelled and refunded by authorized organizers prior to the summit commencement, provided none of the admissions in the booking have been checked in at the gate. Used tickets are strictly non-refundable.
+                All ticket bookings and registrations are strictly non-refundable and non-cancellable once confirmed. Passes may be transferred to an eligible colleague or associate up to 48 hours before the event by contacting the organizer team.
               </p>
             </div>
           </div>

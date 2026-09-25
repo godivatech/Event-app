@@ -395,25 +395,19 @@ export default function AdminDashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Total Collected</p>
+              <p className="text-xs font-semibold text-gray-500">Total Collected Revenue</p>
               <p className="text-xl font-extrabold text-gray-900 mt-1">
                 {metrics ? formatPaise(metrics.financials.grossCollectionsPaise) : '₹0'}
               </p>
             </div>
 
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Refunds</p>
-              <p className="text-xl font-extrabold text-rose-600 mt-1">
-                {metrics ? formatPaise(metrics.financials.refundsPaise) : '₹0'}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500">Net Revenue</p>
-              <p className="text-xl font-extrabold text-emerald-700 mt-1">
-                {metrics ? formatPaise(metrics.financials.netCollectionsPaise) : '₹0'}
+              <p className="text-xs font-semibold text-gray-500">Settlement Policy</p>
+              <p className="text-sm font-bold text-emerald-700 mt-2 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                Non-Refundable / 100% Retained
               </p>
             </div>
           </div>
@@ -429,7 +423,7 @@ export default function AdminDashboardPage() {
           >
             <span className="flex items-center gap-2.5">
               <Ticket className="w-4 h-4 text-[#EE8518]" />
-              Manage Bookings & Refunds
+              Manage Bookings
             </span>
             <ChevronRight className="w-4 h-4 text-gray-400" />
           </Link>

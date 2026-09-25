@@ -30,7 +30,7 @@ const navItems = [
   { name: 'Events', href: '/admin/events', icon: Calendar },
   { name: 'Bookings', href: '/admin/bookings', icon: ShoppingBag },
   { name: 'Tickets', href: '/admin/tickets', icon: Ticket },
-  { name: 'Payments & Refunds', href: '/admin/payments', icon: CreditCard },
+  { name: 'Payments & Transactions', href: '/admin/payments', icon: CreditCard },
   { name: 'Gate Check-Ins', href: '/admin/check-ins', icon: CheckCircle2 },
   { name: 'Reports & CSV Export', href: '/admin/reports', icon: BarChart3 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
