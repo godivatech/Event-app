@@ -647,7 +647,7 @@ export default function TicketSelectionPage() {
                       id="membership-code-input"
                       type="text"
                       required
-                      placeholder="e.g. CEDOI-MEM-1042 or Member ID"
+                      placeholder="Enter your CEDOI Member Code"
                       value={membershipCode}
                       onChange={(e) => {
                         setMembershipCode(e.target.value.toUpperCase());
