@@ -2,7 +2,7 @@
 
 ## 1. System Overview & Monolith Structure
 The CEDOI Digital Event Ticketing Platform is built as a hardened **modular monolith** architected to scale reliably from initial 2,000 admissions up to high-volume events. It features three distinct user experiences driven by a shared design language and centralized state invariants:
-1. **Customer Web Portal (`apps/web`):** Next.js 14 (App Router) rendering server-side SEO-optimized event landing pages, dynamic multi-tier ticket reservation countdowns, Razorpay Checkout integration, instant QR admission passes, and signed PDF downloads.
+1. **Customer Web Portal (`apps/web`):** Next.js 14 (App Router) rendering server-side SEO-optimized event landing pages, dynamic multi-tier ticket reservation countdowns, Cashfree Payments JS SDK v3 modal checkout, instant QR admission passes, and signed PDF downloads.
 2. **Admin Command Center (`apps/web/app/admin`):** High-density managerial dashboard providing authoritative PostgreSQL aggregations for gross/net revenue, category allocation, gate throughput velocity, booking inspections, Excel-compatible CSV exports, and voluntary refund executions.
 3. **Gate Scanner Terminal (`apps/web/app/scanner`):** Mobile-optimized, HTTPS-enforced barcode scanning interface utilizing `getUserMedia` and Native `BarcodeDetector` (with manual fallback), backed by single-entry atomic check-in transactions and request-ID idempotency.
 
@@ -77,14 +77,14 @@ Guest checkout creates an unguessable 128-bit recovery code (e.g., `CEDOI-XXXX-X
 [Customer Checkout] 
        │
        ▼
-Create Server Reservation ────► Razorpay Order Creation (paise accurate)
+Create Server Reservation ────► Cashfree Order Creation (PG v2023-08-01)
        │                                     │
        ▼                                     ▼
-Hold Active (10 Mins)               Checkout Window (Client Modal)
+Hold Active (10 Mins)               Checkout Window (Cashfree Drop JS SDK v3)
        │                                     │
        ├─────────────────────────────────────┤
        ▼                                     ▼
-Browser Callback (verify)           Durable Webhook (HMAC SHA-256)
+Browser Callback (verify)           Durable Webhook (HMAC-SHA256 signature)
        │                                     │
        └───────────────┬─────────────────────┘
                        ▼
@@ -102,8 +102,8 @@ Browser Callback (verify)           Durable Webhook (HMAC SHA-256)
 
 ### 5.1 Multi-Path Convergence
 Payment fulfillment converges via `PaymentsService.fulfillCapturedPayment`:
-- Verified Checkout callbacks, durable webhooks (`payment.captured`), and background reconciliation jobs share the same atomic fulfillment logic.
-- Incoming webhook event IDs (`evt_id`) are deduplicated through the `ProcessedWebhook` database table.
+- Verified Checkout callbacks, durable webhooks (`PAYMENT_SUCCESS_WEBHOOK`), and background reconciliation jobs share the same atomic fulfillment logic.
+- Incoming webhook event IDs are deduplicated through the `ProcessedWebhook` database table.
 - A booking is fulfilled exactly once; redundant captures trigger automatic compensating refunds without overselling capacity.
 
 ### 5.2 Transactional Outbox Pattern

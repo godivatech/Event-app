@@ -2,7 +2,7 @@
 
 **Platform Version:** 1.0.0 (V1 Release Candidate)  
 **Verification Date:** September 21, 2026  
-**Stack:** Next.js 14, NestJS REST API, Neon Cloud PostgreSQL, Prisma ORM, BullMQ/Outbox, Razorpay Gateway, AES-256-GCM / SHA-256
+**Stack:** Next.js 14, NestJS REST API, Neon Cloud PostgreSQL, Prisma ORM, BullMQ/Outbox, Cashfree Payments PG (v2023-08-01), AES-256-GCM / SHA-256
 
 ---
 
@@ -12,7 +12,7 @@
 | :--- | :--- | :---: | :--- |
 | **Phase 1** | Foundation & Workspace Setup | **COMPLETED** | Monorepo workspaces (`packages/*`, `apps/*`), design tokens, DB schema migrated on Neon PostgreSQL, seeds loaded. |
 | **Phase 2** | Customer Booking & Inventory | **COMPLETED** | Atomic multi-category reservation, `SELECT FOR UPDATE` locking, 10-minute expiry countdown, guest recovery code. |
-| **Phase 3** | Payments & Financial State | **COMPLETED** | Razorpay order creation, HMAC signature verification, idempotent webhooks, late-capture compensation & refund logic. |
+| **Phase 3** | Payments & Financial State | **COMPLETED** | Cashfree Payments order creation (v2023-08-01), SDK v3 modal checkout, HMAC-SHA256 signature verification, idempotent webhooks, late-capture compensation & refund logic. |
 | **Phase 4** | Ticket Delivery & Recovery | **COMPLETED** | Scannable multi-page PDF generation (`pdfkit`), 256-bit entropy QR tokens, AES-256-GCM encryption, session recovery. |
 | **Phase 5** | Scanner & Atomic Check-In | **COMPLETED** | Mobile camera scanning (`getUserMedia`), single-entry atomic conditional update, `requestId` retry idempotency. |
 | **Phase 6** | Admin Operations & Reports | **COMPLETED** | Real DB aggregate dashboard, bookings & payment inspection, voluntary refund actions, Excel-safe CSV exports. |
@@ -104,6 +104,6 @@ Result: 19/19 routes compiled successfully with 0 TypeScript or linting errors.
 - Excel-safe UTF-8 CSV exports with formula injection defense.
 
 ### Requires Live Credentials for Production Deployment
-1. **Razorpay Live API Keys:** Replace test keys in `.env` with live keys (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`).
+1. **Cashfree Live API Keys:** Replace sandbox keys in `.env` with live credentials (`CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_ENV="PRODUCTION"`, `CASHFREE_API_VERSION="2023-08-01"`).
 2. **Official Vector Logo:** The platform currently renders the development fallback asset (`/brand/cedoi-logo-fallback.svg`) adhering to exact brand colors (`#08537B` and `#EE8518`). Swap with official approved SVG upon brand team handover.
 3. **Public HTTPS Domain:** Modern mobile browsers require HTTPS for camera stream acquisition (`getUserMedia`) on mobile scanner terminals.

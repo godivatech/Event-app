@@ -44,8 +44,16 @@ async function bootstrap() {
       return callback(null, true);
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'x-guest-session', 'x-razorpay-signature'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-request-id',
+      'x-guest-session',
+      'x-webhook-signature',
+      'x-webhook-timestamp',
+      'x-client-id',
+      'x-api-version',
+    ],
   });
 
   const port = process.env.PORT || 4000;

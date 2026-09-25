@@ -116,8 +116,8 @@ All generated PDFs are stored in `PDF_STORAGE_DIR` (`./storage/pdfs` or containe
 
 ## 7. Incident Runbook & Troubleshooting
 
-### Problem: Customer browser closed during Razorpay payment
-- **Resolution:** The backend handles this automatically. When Razorpay confirms the capture via webhook (`payment.captured`), the backend fulfills the booking and provisions individual tickets. The customer can visit `/recover` on any device using their booking number and recovery code to access their passes.
+### Problem: Customer browser closed during Cashfree payment
+- **Resolution:** The backend handles this automatically. When Cashfree confirms the capture via webhook (`PAYMENT_SUCCESS_WEBHOOK`), the backend fulfills the booking and provisions individual tickets. The customer can visit `/recover` on any device using their booking number and recovery code to access their passes.
 
 ### Problem: Stale temporary reservations holding inventory
 - **Resolution:** The `OutboxService` sweeper runs every 5 seconds and automatically marks expired reservations as `EXPIRED`, restoring held ticket quantities back to the available pool.

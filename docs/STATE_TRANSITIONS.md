@@ -8,7 +8,7 @@ This document defines the authoritative state machines, allowed transitions, tri
 
 | From State | Allowed Target State | Triggering Condition | Business Invariant |
 | :--- | :--- | :--- | :--- |
-| **`PENDING`** | `CONFIRMED` | Verified Razorpay capture callback or webhook. | Reservation consumed; individual tickets issued; PDF job enqueued. |
+| **`PENDING`** | `CONFIRMED` | Verified Cashfree capture callback or webhook. | Reservation consumed; individual tickets issued; PDF job enqueued. |
 | **`PENDING`** | `EXPIRED` | Reservation timer passes without payment capture. | Inventory released to pool; payment attempts marked unfulfillable. |
 | **`PENDING`** | `PAYMENT_EXCEPTION` | Captured payment received after inventory expired and sold out. | Capacity protected; no tickets issued; automatic full refund initiated. |
 | **`CONFIRMED`** | `CANCELLATION_PENDING`| Admin voluntary refund initiated. | Tickets transitioned to `SUSPENDED` to prevent concurrent gate check-in. |
@@ -34,11 +34,11 @@ This document defines the authoritative state machines, allowed transitions, tri
 
 | State | Description | Provider Event Equivalent |
 | :--- | :--- | :--- |
-| **`CREATED`** | Order created on Razorpay (`order_xxx`). | `order.created` |
-| **`PENDING`** | Customer opened Checkout modal. | Modal active in browser |
-| **`AUTHORIZED`**| Payment authorized but not yet captured. | `payment.authorized` |
-| **`CAPTURED`** | Funds transferred to merchant account. | `payment.captured` |
-| **`FAILED`** | Card declined or transaction aborted. | `payment.failed` |
+| **`CREATED`** | Order created on Cashfree (`order_xxx`). | `ORDER_CREATED` |
+| **`PENDING`** | Customer opened Cashfree Drop / Component checkout modal. | Modal active in browser |
+| **`AUTHORIZED`**| Payment authorized but not yet captured. | `PAYMENT_AUTHORIZED` |
+| **`CAPTURED`** | Funds transferred to merchant account (SUCCESS). | `PAYMENT_SUCCESS_WEBHOOK` |
+| **`FAILED`** | Card declined or transaction aborted. | `PAYMENT_FAILED_WEBHOOK` |
 
 ---
 
@@ -58,8 +58,8 @@ This document defines the authoritative state machines, allowed transitions, tri
 | State | Description | Resolution |
 | :--- | :--- | :--- |
 | **`REQUESTED`** | Admin initiated refund or late-capture trigger created. | Assigned unique internal operation reference. |
-| **`PROCESSING`**| Sent to Razorpay refund API (`/v1/payments/:id/refund`). | Awaiting webhook or polling status. |
-| **`SUCCEEDED`** | Razorpay confirmed refund settlement. | Booking marked `CANCELLED`; tickets `CANCELLED`. |
+| **`PROCESSING`**| Sent to Cashfree PG refund API (`/pg/orders/:order_id/refunds`). | Awaiting webhook or polling status. |
+| **`SUCCEEDED`** | Cashfree confirmed refund settlement (`REFUND_STATUS: SUCCESS`). | Booking marked `CANCELLED`; tickets `CANCELLED`. |
 | **`FAILED`** | Provider rejected refund (e.g. insufficient merchant balance). | Retains exception state; alerts admin console. |
 
 ---

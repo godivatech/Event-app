@@ -17,8 +17,9 @@ import {
 
 interface PaymentAttempt {
   id: string;
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
+  provider?: string;
+  cfOrderId?: string;
+  cfPaymentId?: string;
   status: string;
   amountPaise: number;
   currency: string;
@@ -104,7 +105,7 @@ export default function AdminPaymentsPage() {
         <div className="space-y-1">
           <p className="font-bold text-blue-900">Cryptographic Verification & Deduplication Guarantee</p>
           <p className="text-blue-800 leading-relaxed">
-            All captured payments undergo HMAC SHA-256 signature validation against Razorpay webhook secrets and Checkout payloads. Late captures allocate capacity if available, or trigger automatic compensating refunds without overselling.
+            All captured payments undergo HMAC SHA-256 signature validation against Cashfree webhook secrets and Checkout payloads. Late captures allocate capacity if available, or trigger automatic compensating refunds without overselling.
           </p>
         </div>
       </div>
@@ -116,7 +117,7 @@ export default function AdminPaymentsPage() {
             Gateway Attempts ({totalAttempts})
           </h2>
           <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
-            Provider: Razorpay Gateway
+            Provider: Cashfree Payments (PG v2023-08-01)
           </span>
         </div>
 
@@ -126,8 +127,8 @@ export default function AdminPaymentsPage() {
               <tr>
                 <th className="py-3.5 px-4 font-semibold">Booking #</th>
                 <th className="py-3.5 px-4 font-semibold">Customer</th>
-                <th className="py-3.5 px-4 font-semibold">Razorpay Order ID</th>
-                <th className="py-3.5 px-4 font-semibold">Razorpay Payment ID</th>
+                <th className="py-3.5 px-4 font-semibold">Cashfree Order ID</th>
+                <th className="py-3.5 px-4 font-semibold">Cashfree Payment ID</th>
                 <th className="py-3.5 px-4 font-semibold">Amount</th>
                 <th className="py-3.5 px-4 font-semibold">Status</th>
                 <th className="py-3.5 px-4 text-right font-semibold">Timestamp</th>
@@ -169,10 +170,10 @@ export default function AdminPaymentsPage() {
                       {a.booking.customerName}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-gray-500">
-                      {a.razorpayOrderId || 'N/A'}
+                      {a.cfOrderId || 'N/A'}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-gray-800">
-                      {a.razorpayPaymentId || (
+                      {a.cfPaymentId || (
                         <span className="text-gray-400">Awaiting Capture</span>
                       )}
                     </td>

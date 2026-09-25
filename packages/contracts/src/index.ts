@@ -216,7 +216,9 @@ export interface BookingDetailDto {
   }[];
   paymentAttempt?: {
     id: string;
-    razorpayOrderId?: string | null;
+    provider?: string;
+    cfOrderId?: string | null;
+    cfPaymentId?: string | null;
     status: PaymentAttemptStatus;
     amountPaise: number;
   } | null;
@@ -239,7 +241,7 @@ export interface BookingDetailDto {
   } | null;
 }
 
-// Payment DTOs
+// Payment DTOs (Cashfree Payments PG v2023-08-01)
 export interface CreatePaymentOrderDto {
   bookingNumber: string;
 }
@@ -258,9 +260,8 @@ export interface CashfreeOrderResponseDto {
   customerEmail?: string | null;
 }
 
-// Backward-compatible alias
+// Standard Payment aliases
 export type PaymentOrderResponseDto = CashfreeOrderResponseDto;
-export type RazorpayOrderResponseDto = CashfreeOrderResponseDto & { keyId?: string };
 
 export interface VerifyPaymentDto {
   bookingNumber: string;
@@ -269,10 +270,6 @@ export interface VerifyPaymentDto {
   signature?: string;
   cfOrderId?: string;
   cfPaymentId?: string;
-  // Legacy Razorpay compatibility fields
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
-  razorpaySignature?: string;
 }
 
 export interface PaymentVerificationResultDto {

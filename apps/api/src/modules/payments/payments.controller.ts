@@ -48,10 +48,7 @@ export class PaymentsController {
     @Body() body: any,
     @Req() req: Request
   ) {
-    const signature =
-      (req.headers['x-webhook-signature'] as string) ||
-      (req.headers['x-razorpay-signature'] as string) ||
-      '';
+    const signature = (req.headers['x-webhook-signature'] as string) || '';
     const timestamp = (req.headers['x-webhook-timestamp'] as string) || '';
     const rawBody = (req as any).rawBody || JSON.stringify(body);
     return this.paymentsService.handleWebhook(rawBody, signature, timestamp, body);

@@ -216,9 +216,9 @@ async function main() {
           create: [
             {
               attemptNumber: 1,
-              razorpayOrderId: 'order_seed_001',
-              razorpayPaymentId: 'pay_seed_001_captured',
-              razorpaySignature: 'sig_seed_verified_signature',
+              provider: 'CASHFREE',
+              cfOrderId: 'cf_order_seed_001',
+              cfPaymentId: 'cf_pay_seed_001_captured',
               amountPaise: 299800,
               currency: 'INR',
               status: PaymentAttemptStatus.CAPTURED,

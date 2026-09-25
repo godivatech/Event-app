@@ -191,9 +191,9 @@ export class PaymentsService {
     ipAddress?: string
   ): Promise<PaymentVerificationResultDto> {
     const { bookingNumber } = dto;
-    const orderId = dto.orderId || dto.cfOrderId || dto.razorpayOrderId || '';
-    const paymentId = dto.paymentId || dto.cfPaymentId || dto.razorpayPaymentId || `pay_${Date.now()}`;
-    const signature = dto.signature || dto.razorpaySignature || '';
+    const orderId = dto.orderId || dto.cfOrderId || '';
+    const paymentId = dto.paymentId || dto.cfPaymentId || `pay_${Date.now()}`;
+    const signature = dto.signature || '';
 
     if (!orderId) {
       throw new BadRequestException({
@@ -289,7 +289,6 @@ export class PaymentsService {
             OR: [
               { cfOrderId },
               ...(cfPaymentId ? [{ cfPaymentId }] : []),
-              { razorpayOrderId: cfOrderId },
             ],
           },
         });
@@ -530,7 +529,7 @@ export class PaymentsService {
         let resolvedBookingNumber = bookingNumber;
         if (!resolvedBookingNumber) {
           const attempt = await this.prisma.paymentAttempt.findFirst({
-            where: { OR: [{ cfOrderId: orderId }, { razorpayOrderId: orderId }] },
+            where: { cfOrderId: orderId },
             include: { booking: true },
           });
           if (attempt && attempt.booking) {
@@ -629,7 +628,7 @@ export class PaymentsService {
 
         // Generate internal reference
         const internalReference = `REF-${uuidv4().slice(0, 10).toUpperCase()}`;
-        const orderIdToRefund = capturedPayment.cfOrderId || capturedPayment.razorpayOrderId || '';
+        const orderIdToRefund = capturedPayment.cfOrderId || '';
 
         let cfRefundId: string | null = null;
         let refundStatus: RefundStatus = RefundStatus.SUCCEEDED;

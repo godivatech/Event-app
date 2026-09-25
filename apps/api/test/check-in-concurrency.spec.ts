@@ -18,10 +18,14 @@ describe('Scanner Check-In Concurrency & Idempotency', () => {
     auditService = new AuditService(prisma);
     checkInsService = new CheckInsService(prisma, auditService);
 
-    testEvent = await prisma.event.findFirst({
-      where: { slug: 'cedoi-summit-2026' },
-      include: { gates: true },
-    });
+    testEvent =
+      (await prisma.event.findFirst({
+        where: { slug: 'cedoi-awards-2026' },
+        include: { gates: true },
+      })) ||
+      (await prisma.event.findFirst({
+        include: { gates: true },
+      }));
 
     staffUser = await prisma.user.findFirst({
       where: { email: 'scanner@cedoi.org' },

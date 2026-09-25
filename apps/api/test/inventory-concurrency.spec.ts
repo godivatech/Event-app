@@ -122,12 +122,14 @@ describe('Inventory Concurrency & Atomicity (PostgreSQL Integration)', () => {
       eventId: testEventId,
       customerName: 'Buyer 1',
       customerPhone: '+919999900001',
+      age: 28,
       items: [{ ticketTypeId: typeBId, quantity: 2 }],
     });
     const req2 = bookingsService.createReservation({
       eventId: testEventId,
       customerName: 'Buyer 2',
       customerPhone: '+919999900002',
+      age: 30,
       items: [{ ticketTypeId: typeBId, quantity: 2 }],
     });
 

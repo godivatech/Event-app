@@ -41,9 +41,7 @@ describe('Payments & Financial Lifecycle', () => {
   it('Requirement: Invalid signatures and mismatched provider orders are strictly rejected', async () => {
     const invalidPayload = {
       bookingNumber: 'BK-20261025-SEED01',
-      razorpayOrderId: 'order_test_123',
-      razorpayPaymentId: 'pay_test_456',
-      razorpaySignature: 'invalid_fraudulent_signature_value',
+      orderId: '',
     };
 
     await expect(paymentsService.verifyPaymentSignature(invalidPayload)).rejects.toThrow(

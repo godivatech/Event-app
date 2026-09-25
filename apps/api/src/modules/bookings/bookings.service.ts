@@ -411,7 +411,9 @@ export class BookingsService {
       paymentAttempt: latestPayment
         ? {
             id: latestPayment.id,
-            razorpayOrderId: latestPayment.razorpayOrderId,
+            provider: latestPayment.provider,
+            cfOrderId: latestPayment.cfOrderId,
+            cfPaymentId: latestPayment.cfPaymentId,
             status: latestPayment.status as any,
             amountPaise: latestPayment.amountPaise,
           }

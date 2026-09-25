@@ -34,8 +34,9 @@ interface BookingItem {
 
 interface PaymentAttempt {
   id: string;
-  razorpayOrderId?: string;
-  razorpayPaymentId?: string;
+  provider?: string;
+  cfOrderId?: string;
+  cfPaymentId?: string;
   status: string;
   amountPaise: number;
   createdAt: string;
@@ -651,11 +652,16 @@ export default function AdminBookingsPage() {
                     >
                       <div>
                         <span className="font-mono text-gray-900 font-bold block">
-                          Order: {p.razorpayOrderId || 'N/A'}
+                          Cashfree Order: {p.cfOrderId || 'N/A'}
                         </span>
                         <span className="text-[11px] text-gray-500">
-                          Payment ID: {p.razorpayPaymentId || 'Awaiting Provider Capture'}
+                          Payment ID: {p.cfPaymentId || 'Awaiting Provider Capture'}
                         </span>
+                        {p.provider && (
+                          <span className="inline-block mt-1 font-mono text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {p.provider}
+                          </span>
+                        )}
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-emerald-700 block">
