@@ -529,53 +529,6 @@ export default function AdminBookingsPage() {
               </div>
             )}
 
-            {/* Admin Refund Action */}
-            {selectedBooking.status === 'CONFIRMED' && selectedBooking.refunds.length === 0 && (
-              <div className="p-4 rounded-2xl bg-rose-50/50 border border-rose-200 space-y-3">
-                <div className="flex items-center gap-2 text-rose-800 text-xs font-bold">
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>Admin Voluntary Refund & Invalidation</span>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-relaxed">
-                  In accordance with Section 17, voluntary admin refunds are permitted for unused
-                  bookings. Submitting this action will atomically cancel all tickets and return
-                  funds through Razorpay.
-                </p>
-
-                {refundError && (
-                  <div className="p-2.5 rounded-xl bg-rose-100 border border-rose-200 text-xs text-rose-800">
-                    {refundError}
-                  </div>
-                )}
-                {refundSuccess && (
-                  <div className="p-2.5 rounded-xl bg-emerald-100 border border-emerald-200 text-xs text-emerald-800">
-                    {refundSuccess}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    placeholder="Enter mandatory refund reason (e.g. Guest medical request)..."
-                    value={refundReason}
-                    onChange={(e) => setRefundReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                  <button
-                    onClick={handleProcessRefund}
-                    disabled={refundLoading || !refundReason.trim()}
-                    className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-xs"
-                  >
-                    {refundLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RotateCcw className="w-4 h-4" />
-                    )}
-                    <span>Execute Full Refund ({formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)})</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

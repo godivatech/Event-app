@@ -139,7 +139,7 @@ export default function AdminSettingsPage() {
                 <span className="text-[10px] text-[#08537B] font-mono font-bold">Full Scope</span>
               </div>
               <p className="text-[11px] text-gray-500">
-                Staff provisioning, event configuration, refunds, exports, and audit access.
+                Staff provisioning, event configuration, exports, and security audit access.
               </p>
             </div>
 
@@ -149,7 +149,7 @@ export default function AdminSettingsPage() {
                 <span className="text-[10px] text-emerald-700 font-mono font-bold">Event Operations</span>
               </div>
               <p className="text-[11px] text-gray-500">
-                Bookings inspection, reports download, payment reconciliation, and refunds.
+                Bookings inspection, reports download, payment reconciliation, and check-in audits.
               </p>
             </div>
 
