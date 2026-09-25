@@ -258,9 +258,9 @@ export default function TicketSelectionPage() {
       return;
     }
 
-    // Strict validation for CEDOI members (Only authorized code accepted)
+    // Validation for CEDOI members (Format check; authoritative whitelist validation runs on backend)
     if (memberType === 'MEMBER') {
-      const trimmedCode = membershipCode.trim().toUpperCase();
+      const trimmedCode = membershipCode.trim();
       if (!trimmedCode) {
         setMembershipCodeError('Please enter your CEDOI Membership ID or Code.');
         setErrorMessage('CEDOI Membership ID / Code is required for member registrations.');
@@ -273,9 +273,9 @@ export default function TicketSelectionPage() {
         }
         return;
       }
-      if (trimmedCode !== 'CEDOI0014') {
-        setMembershipCodeError('Invalid Membership Code. Only authorized CEDOI member codes are accepted.');
-        setErrorMessage('Invalid Membership Code. Please enter an authorized CEDOI member code or select Non-Member Delegate.');
+      if (trimmedCode.length < 3 || trimmedCode.length > 32) {
+        setMembershipCodeError('Please enter a valid CEDOI Membership Code (3-32 characters).');
+        setErrorMessage('Please enter a valid CEDOI Membership Code.');
         if (typeof document !== 'undefined') {
           const elem = document.getElementById('membership-code-input');
           if (elem) {
