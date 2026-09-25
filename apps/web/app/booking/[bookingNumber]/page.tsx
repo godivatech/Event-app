@@ -366,12 +366,18 @@ export default function BookingReviewAndPaymentPage() {
               </div>
 
               <div className="pt-4 border-t border-slate-100 space-y-3">
-                <div className="flex items-center gap-2.5 text-xs text-slate-700 font-semibold">
-                  <CreditCard className="w-4 h-4 text-[#08537B]" />
-                  <span>Secure Payment Gateway</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-slate-800 font-bold">
+                    <CreditCard className="w-4 h-4 text-[#08537B]" />
+                    <span>Cashfree Payment Gateway</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>Cashfree PG</span>
+                  </span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Pay securely via UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, or NetBanking.
+                  Pay securely via UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards, or NetBanking powered by <strong>Cashfree Payments</strong>.
                 </p>
 
                 {/* Primary Cashfree Action Button */}
@@ -384,12 +390,12 @@ export default function BookingReviewAndPaymentPage() {
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Opening Secure Checkout...</span>
+                      <span>Opening Cashfree Checkout...</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>Pay {formatPaise(booking.totalPaise)} Securely</span>
+                      <span>Pay {formatPaise(booking.totalPaise)} with Cashfree</span>
                     </>
                   )}
                 </button>
@@ -409,7 +415,7 @@ export default function BookingReviewAndPaymentPage() {
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
                       <Sparkles className="w-3 h-3 text-[#EE8518]" />
-                      <span>Test-Mode Instant Payment</span>
+                      <span>Cashfree Test-Mode Simulation</span>
                     </span>
                     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 uppercase">
                       Dev Sim
@@ -429,7 +435,7 @@ export default function BookingReviewAndPaymentPage() {
                     ) : (
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     )}
-                    <span>Simulate Verified Payment</span>
+                    <span>Simulate Cashfree Payment</span>
                   </button>
                 </div>
               </div>
@@ -437,7 +443,7 @@ export default function BookingReviewAndPaymentPage() {
               {/* Security & Trust Badges */}
               <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-slate-400">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>256-bit SSL encrypted • Instant Digital Passes</span>
+                <span>Powered by Cashfree Payments • 256-bit SSL encrypted</span>
               </div>
             </div>
           </div>
