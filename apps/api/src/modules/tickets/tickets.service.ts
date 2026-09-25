@@ -275,7 +275,10 @@ export class TicketsService {
           const isVeg = (ticket.foodPreference || booking.foodPreference) === 'VEG';
 
           doc.fillColor('#64748B').fontSize(9).font('Helvetica').text('MEMBERSHIP TYPE', 60, 345);
-          doc.fillColor(isMember ? '#08537B' : '#475569').fontSize(11).font('Helvetica-Bold').text(isMember ? 'CEDOI MEMBER' : 'NON-MEMBER', 60, 358);
+          const memberLabel = isMember
+            ? (booking.membershipCode ? `CEDOI MEMBER (${booking.membershipCode})` : 'CEDOI MEMBER')
+            : 'NON-MEMBER';
+          doc.fillColor(isMember ? '#08537B' : '#475569').fontSize(isMember && booking.membershipCode ? 9.5 : 11).font('Helvetica-Bold').text(memberLabel, 60, 358);
 
           doc.fillColor('#64748B').fontSize(9).font('Helvetica').text('CATERING / MEAL', 260, 345);
           doc.fillColor(isVeg ? '#16A34A' : '#D97706').fontSize(11).font('Helvetica-Bold').text(isVeg ? 'PURE VEGETARIAN' : 'NON-VEGETARIAN', 260, 358);

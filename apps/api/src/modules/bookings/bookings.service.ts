@@ -17,7 +17,8 @@ import {
   BookingStatus,
   EventStatus,
 } from '@cedoi/contracts';
-import { Prisma } from '@prisma/client';
+import { Prisma, ReservationStatus } from '@prisma/client';
+import { TicketsService } from '../tickets/tickets.service';
 
 @Injectable()
 export class BookingsService {
@@ -28,6 +29,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
+    private readonly ticketsService: TicketsService,
     private readonly audit: AuditService
   ) {}
 
@@ -68,7 +70,17 @@ export class BookingsService {
     const businessName = dto.businessName?.trim() || null;
     const location = dto.location?.trim() || null;
     const memberType = dto.memberType === 'MEMBER' ? 'MEMBER' : 'NON_MEMBER';
+    const isMember = memberType === 'MEMBER';
+    const membershipCode = isMember ? dto.membershipCode?.trim() || null : null;
     const foodPreference = dto.foodPreference === 'NON_VEG' ? 'NON_VEG' : 'VEG';
+
+    // Validate membership code for CEDOI Members
+    if (isMember && (!membershipCode || membershipCode.length < 2)) {
+      throw new BadRequestException({
+        code: 'MISSING_MEMBERSHIP_CODE',
+        message: 'CEDOI Membership Code is required for member registrations.',
+      });
+    }
 
     // Age requirement validation (Strictly 18+)
     if (dto.age === undefined || dto.age === null || String(dto.age).trim() === '') {
@@ -111,6 +123,7 @@ export class BookingsService {
         }
 
         // 3. Create Booking
+        // Members get CONFIRMED status & CONSUMED inventory immediately with paymentStatus = PENDING (offline collection)
         const createdBooking = await tx.booking.create({
           data: {
             bookingNumber,
@@ -122,12 +135,14 @@ export class BookingsService {
             location,
             age,
             memberType,
+            membershipCode,
+            paymentStatus: 'PENDING',
             foodPreference,
             currency: 'INR',
             subtotalPaise: totalPaise,
             totalPaise,
-            status: BookingStatus.PENDING,
-            reservationExpiresAt: expiresAt,
+            status: isMember ? BookingStatus.CONFIRMED : BookingStatus.PENDING,
+            reservationExpiresAt: isMember ? null : expiresAt,
             recoveryCodeHash,
             guestSessionTokenHash: guestTokenHash,
             items: {
@@ -140,7 +155,8 @@ export class BookingsService {
             },
             reservation: {
               create: {
-                expiresAt,
+                expiresAt: isMember ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : expiresAt,
+                status: isMember ? ReservationStatus.CONSUMED : ReservationStatus.HELD,
                 items: {
                   create: verifiedItems.map((item) => ({
                     ticketTypeId: item.ticketTypeId,
@@ -190,9 +206,14 @@ export class BookingsService {
       }
     );
 
+    // For Members, immediately issue active tickets and enqueue PDF pass generation upon booking confirmation
+    if (isMember) {
+      await this.ticketsService.issueTicketsForBooking(this.prisma, booking.id);
+    }
+
     await this.audit.log({
       actorType: 'CUSTOMER',
-      action: 'BOOKING_RESERVATION_CREATED',
+      action: isMember ? 'MEMBER_REGISTRATION_CREATED' : 'BOOKING_RESERVATION_CREATED',
       entityType: 'BOOKING',
       entityId: booking.id,
       eventId: event.id,
@@ -201,6 +222,9 @@ export class BookingsService {
         bookingNumber: booking.bookingNumber,
         totalPaise: booking.totalPaise,
         itemCount: booking.items.length,
+        memberType,
+        membershipCode,
+        isMember,
       },
     });
 
@@ -208,10 +232,11 @@ export class BookingsService {
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
       reservationId: booking.reservation?.id || '',
-      expiresAt: booking.reservationExpiresAt!.toISOString(),
+      expiresAt: booking.reservationExpiresAt ? booking.reservationExpiresAt.toISOString() : new Date().toISOString(),
       totalPaise: booking.totalPaise,
       currency: booking.currency,
       recoveryCode: rawRecoveryCode, // Exclusively returned once here
+      isMember,
       items: booking.items.map((it) => ({
         ticketTypeId: it.ticketTypeId,
         ticketTypeName: it.ticketType.name,
@@ -297,6 +322,8 @@ export class BookingsService {
       location: booking.location,
       age: booking.age ?? null,
       memberType: booking.memberType as any,
+      membershipCode: (booking as any).membershipCode || null,
+      paymentStatus: (booking as any).paymentStatus || 'PENDING',
       foodPreference: booking.foodPreference as any,
       currency: booking.currency,
       subtotalPaise: booking.subtotalPaise,

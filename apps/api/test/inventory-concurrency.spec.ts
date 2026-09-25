@@ -19,7 +19,7 @@ describe('Inventory Concurrency & Atomicity (PostgreSQL Integration)', () => {
     await prisma.$connect();
     inventoryService = new InventoryService(prisma);
     auditService = new AuditService(prisma);
-    bookingsService = new BookingsService(prisma, inventoryService, auditService);
+    bookingsService = new BookingsService(prisma, inventoryService, {} as any, auditService);
 
     // Create isolated test event with tight capacities for testing
     const event = await prisma.event.create({

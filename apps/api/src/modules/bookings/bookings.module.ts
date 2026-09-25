@@ -3,9 +3,10 @@ import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { InventoryModule } from '../inventory/inventory.module';
 import { AuthModule } from '../auth/auth.module';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
-  imports: [InventoryModule, AuthModule],
+  imports: [InventoryModule, AuthModule, TicketsModule],
   controllers: [BookingsController],
   providers: [BookingsService],
   exports: [BookingsService],

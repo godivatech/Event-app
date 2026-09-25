@@ -43,6 +43,8 @@ export default function TicketSelectionPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
   const [memberType, setMemberType] = useState<'MEMBER' | 'NON_MEMBER'>('MEMBER');
+  const [membershipCode, setMembershipCode] = useState('');
+  const [membershipCodeError, setMembershipCodeError] = useState<string | null>(null);
   const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG'>('VEG');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +75,9 @@ export default function TicketSelectionPage() {
               if (parsed.age) setAge(parsed.age);
               if (parsed.memberType === 'MEMBER' || parsed.memberType === 'NON_MEMBER') {
                 setMemberType(parsed.memberType);
+              }
+              if (parsed.membershipCode && typeof parsed.membershipCode === 'string') {
+                setMembershipCode(parsed.membershipCode);
               }
               if (parsed.foodPreference === 'VEG' || parsed.foodPreference === 'NON_VEG') {
                 setFoodPreference(parsed.foodPreference);
@@ -116,6 +121,7 @@ export default function TicketSelectionPage() {
         location,
         age,
         memberType,
+        membershipCode,
         foodPreference,
         agreedToTerms,
       };
@@ -134,9 +140,18 @@ export default function TicketSelectionPage() {
     location,
     age,
     memberType,
+    membershipCode,
     foodPreference,
     agreedToTerms,
   ]);
+
+  const handleMemberTypeChange = (type: 'MEMBER' | 'NON_MEMBER') => {
+    setMemberType(type);
+    setErrorMessage(null);
+    if (type === 'NON_MEMBER') {
+      setMembershipCodeError(null);
+    }
+  };
 
   const handleQuantityChange = (ticketTypeId: string, qty: number) => {
     setQuantities((prev) => ({
@@ -243,6 +258,28 @@ export default function TicketSelectionPage() {
       return;
     }
 
+    // Strict validation for CEDOI members
+    if (memberType === 'MEMBER') {
+      const trimmedCode = membershipCode.trim();
+      if (!trimmedCode) {
+        setMembershipCodeError('Please enter your CEDOI Membership ID or Code.');
+        setErrorMessage('CEDOI Membership ID / Code is required for member registrations.');
+        if (typeof document !== 'undefined') {
+          const elem = document.getElementById('membership-code-input');
+          if (elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elem.focus();
+          }
+        }
+        return;
+      }
+      if (trimmedCode.length < 3) {
+        setMembershipCodeError('Membership ID / Code must be at least 3 characters.');
+        setErrorMessage('Please enter a valid CEDOI Membership ID (minimum 3 characters).');
+        return;
+      }
+    }
+
     if (!agreedToTerms) {
       setTermsError(true);
       if (typeof document !== 'undefined') {
@@ -258,6 +295,9 @@ export default function TicketSelectionPage() {
       .filter(([_, q]) => q > 0)
       .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }));
 
+    const cleanedMembershipCode =
+      memberType === 'MEMBER' ? membershipCode.trim().toUpperCase() : undefined;
+
     setIsSubmitting(true);
     try {
       const reservation = await apiClient<ReservationResponseDto>('api/v1/bookings/reserve', {
@@ -272,6 +312,7 @@ export default function TicketSelectionPage() {
           age: parsedAge,
           agreedToTerms: true,
           memberType,
+          membershipCode: cleanedMembershipCode,
           foodPreference,
           items,
         }),
@@ -286,8 +327,13 @@ export default function TicketSelectionPage() {
         }
       }
 
-      // Navigate to Review step
-      router.push(`/booking/${reservation.bookingNumber}`);
+      // If Member, tickets and scannable QR passes are issued instantly! Direct route to pass display.
+      if (reservation.isMember || memberType === 'MEMBER') {
+        router.push(`/booking/${reservation.bookingNumber}/success`);
+      } else {
+        // Non-members proceed to Review & Online Payment
+        router.push(`/booking/${reservation.bookingNumber}`);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Failed to reserve tickets. Please check availability and try again.');
       setIsSubmitting(false);
@@ -530,7 +576,7 @@ export default function TicketSelectionPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setMemberType('MEMBER')}
+                  onClick={() => handleMemberTypeChange('MEMBER')}
                   className={`p-3.5 rounded-[12px] border text-left flex items-start gap-3 transition-all ${
                     memberType === 'MEMBER'
                       ? 'bg-blue-50/80 border-[#08537B] ring-2 ring-[#08537B]/20'
@@ -555,7 +601,7 @@ export default function TicketSelectionPage() {
 
                 <button
                   type="button"
-                  onClick={() => setMemberType('NON_MEMBER')}
+                  onClick={() => handleMemberTypeChange('NON_MEMBER')}
                   className={`p-3.5 rounded-[12px] border text-left flex items-start gap-3 transition-all ${
                     memberType === 'NON_MEMBER'
                       ? 'bg-blue-50/80 border-[#08537B] ring-2 ring-[#08537B]/20'
@@ -578,6 +624,59 @@ export default function TicketSelectionPage() {
                   </div>
                 </button>
               </div>
+
+              {/* Conditional Membership ID Input for CEDOI Members */}
+              {memberType === 'MEMBER' && (
+                <div
+                  id="membership-code-section"
+                  className="mt-4 p-4 rounded-[14px] bg-blue-50/70 border-2 border-blue-200 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label
+                      htmlFor="membership-code-input"
+                      className="block text-xs font-bold text-[#08537B] uppercase tracking-wider"
+                    >
+                      CEDOI Membership ID / Member Code <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-[#08537B] border border-blue-200">
+                      Required for Member Passes
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="membership-code-input"
+                      type="text"
+                      required
+                      placeholder="e.g. CEDOI-MEM-1042 or Member ID"
+                      value={membershipCode}
+                      onChange={(e) => {
+                        setMembershipCode(e.target.value.toUpperCase());
+                        setMembershipCodeError(null);
+                        setErrorMessage(null);
+                      }}
+                      className={`w-full h-11 pl-10 pr-3.5 rounded-[10px] border text-sm font-mono uppercase text-slate-900 bg-white placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
+                        membershipCodeError
+                          ? 'border-rose-400 bg-rose-50/30 focus:ring-rose-200 focus:border-rose-500'
+                          : 'border-blue-300 focus:ring-[#08537B]/20 focus:border-[#08537B]'
+                      }`}
+                    />
+                    <Award className="w-4 h-4 text-[#08537B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                  {membershipCodeError ? (
+                    <p className="text-[11px] font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{membershipCodeError}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-600 mt-1.5 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                      <span>
+                        Enter your valid CEDOI membership code. Direct pass issuance with internal offline verification.
+                      </span>
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Food / Catering Preference */}
@@ -709,6 +808,16 @@ export default function TicketSelectionPage() {
                     Select at least 1 pass category above to proceed to review.
                   </div>
                 </div>
+              ) : memberType === 'MEMBER' ? (
+                <div>
+                  <div className="text-xs text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>CEDOI Member Registration ({totalTickets} admission{totalTickets === 1 ? '' : 's'})</span>
+                  </div>
+                  <div className="text-xs text-[#D5EBF7] mt-0.5">
+                    Direct Pass Issuance • Instant scannable QR ticket generation
+                  </div>
+                </div>
               ) : (
                 <div>
                   <div className="text-xs text-[#D5EBF7] font-semibold uppercase tracking-wider">
@@ -731,11 +840,16 @@ export default function TicketSelectionPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Booking Your Pass...</span>
+                  <span>{memberType === 'MEMBER' ? 'Issuing Member Passes...' : 'Booking Your Pass...'}</span>
                 </>
               ) : totalTickets === 0 ? (
                 <>
                   <span>Select Tickets to Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : memberType === 'MEMBER' ? (
+                <>
+                  <span>Confirm Member Registration & Get Passes</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               ) : (

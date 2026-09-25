@@ -206,6 +206,7 @@ export class ReportsService {
         { customerEmail: { contains: q, mode: 'insensitive' } },
         { businessName: { contains: q, mode: 'insensitive' } },
         { location: { contains: q, mode: 'insensitive' } },
+        { membershipCode: { contains: q, mode: 'insensitive' } },
       ];
     }
 
@@ -233,6 +234,47 @@ export class ReportsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /**
+   * Manually marks an offline member registration as PAID.
+   */
+  async markMemberBookingPaid(bookingId: string, staffUserId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { event: true },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        code: 'BOOKING_NOT_FOUND',
+        message: 'Booking not found.',
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          paymentStatus: 'PAID',
+          status: BookingStatus.CONFIRMED,
+        },
+      });
+
+      // Record offline captured payment attempt for accounting audit & gross collections
+      await tx.paymentAttempt.create({
+        data: {
+          bookingId: booking.id,
+          provider: 'OFFLINE_MANUAL',
+          cfOrderId: `OFFLINE_${booking.bookingNumber}`,
+          cfPaymentId: `OFFLINE_PAID_${Date.now()}`,
+          amountPaise: booking.totalPaise,
+          status: PaymentAttemptStatus.CAPTURED,
+        },
+      });
+
+      return updated;
+    });
   }
 
   async getAdminPayments(params: { eventId?: string; page?: number; limit?: number }) {
@@ -392,6 +434,8 @@ export class ReportsService {
         'Business / Company',
         'Location / City',
         'Membership Type',
+        'Membership Code',
+        'Payment Status',
         'Food Preference',
         'Amount (INR)',
         'Status',
@@ -414,6 +458,8 @@ export class ReportsService {
           b.businessName || '',
           b.location || '',
           b.memberType === 'MEMBER' ? 'Member' : 'Non-Member',
+          b.membershipCode || '',
+          b.paymentStatus || 'PENDING',
           b.foodPreference === 'NON_VEG' ? 'Non-Veg' : 'Veg',
           (b.totalPaise / 100).toFixed(2),
           b.status,
@@ -432,6 +478,7 @@ export class ReportsService {
         'Business / Company',
         'Location / City',
         'Membership Type',
+        'Membership Code',
         'Food Preference',
         'Status',
         'Admission Index',
@@ -457,6 +504,7 @@ export class ReportsService {
           t.businessName || t.booking.businessName || '',
           t.location || t.booking.location || '',
           (t.memberType || t.booking.memberType) === 'MEMBER' ? 'Member' : 'Non-Member',
+          t.booking.membershipCode || '',
           (t.foodPreference || t.booking.foodPreference) === 'NON_VEG' ? 'Non-Veg' : 'Veg',
           t.status,
           t.admissionIndex,

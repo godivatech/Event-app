@@ -22,11 +22,15 @@ describe('Payments & Financial Lifecycle', () => {
     auditService = new AuditService(prisma);
     inventoryService = new InventoryService(prisma);
     ticketsService = new TicketsService(prisma, outboxService);
+    const mockCashfreeClient: any = {
+      verifyWebhookSignature: () => true,
+    };
     paymentsService = new PaymentsService(
       prisma,
       inventoryService,
       ticketsService,
-      auditService
+      auditService,
+      mockCashfreeClient
     );
   });
 
@@ -64,18 +68,15 @@ describe('Payments & Financial Lifecycle', () => {
     };
 
     const rawBody = JSON.stringify(payload);
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'mock_webhook_secret_cedoi_test';
-    const validSignature = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody)
-      .digest('hex');
+    const timestamp = String(Date.now());
+    const validSignature = 'mock_valid_signature';
 
     // First arrival
-    const res1 = await paymentsService.handleWebhook(rawBody, validSignature, payload);
+    const res1 = await paymentsService.handleWebhook(rawBody, validSignature, timestamp, payload);
     expect(res1.received).toBe(true);
 
     // Replay arrival with identical event_id
-    const res2 = await paymentsService.handleWebhook(rawBody, validSignature, payload);
+    const res2 = await paymentsService.handleWebhook(rawBody, validSignature, timestamp, payload);
     expect(res2.received).toBe(true);
 
     // Verify exactly one record was persisted in ProcessedWebhook

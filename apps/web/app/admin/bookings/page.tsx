@@ -17,6 +17,9 @@ import {
   X,
   ShieldAlert,
   RefreshCw,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -55,6 +58,8 @@ interface AdminBooking {
   businessName?: string;
   location?: string;
   memberType?: string;
+  membershipCode?: string | null;
+  paymentStatus?: string;
   foodPreference?: string;
   totalAmountPaise?: number;
   totalPaise?: number;
@@ -83,12 +88,49 @@ export default function AdminBookingsPage() {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
 
-  // Selected Booking for Details / Refund Modal
+  // Selected Booking for Details Modal
   const [selectedBooking, setSelectedBooking] = useState<AdminBooking | null>(null);
   const [refundReason, setRefundReason] = useState<string>('');
   const [refundLoading, setRefundLoading] = useState<boolean>(false);
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundSuccess, setRefundSuccess] = useState<string | null>(null);
+
+  // Member offline payment status actions
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleMarkAsPaid = async (bookingId: string) => {
+    setMarkingPaidId(bookingId);
+    setActionMessage(null);
+    try {
+      await apiClient<any>(`api/v1/admin/bookings/${bookingId}/mark-paid`, {
+        method: 'POST',
+      });
+      // Optimistically update local state
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId ? { ...b, paymentStatus: 'PAID', status: 'CONFIRMED' } : b
+        )
+      );
+      if (selectedBooking && selectedBooking.id === bookingId) {
+        setSelectedBooking((prev) =>
+          prev ? { ...prev, paymentStatus: 'PAID', status: 'CONFIRMED' } : null
+        );
+      }
+      setActionMessage({
+        type: 'success',
+        text: 'Member payment status marked as PAID successfully.',
+      });
+      fetchBookings();
+    } catch (err: any) {
+      setActionMessage({
+        type: 'error',
+        text: err.message || 'Failed to update member payment status.',
+      });
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -169,6 +211,32 @@ export default function AdminBookingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Action Notification Banner */}
+      {actionMessage && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between gap-2 shadow-xs transition-all ${
+            actionMessage.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {actionMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
+            <span>{actionMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setActionMessage(null)}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -319,7 +387,14 @@ export default function AdminBookingsPage() {
                       <p className="text-[11px] text-gray-500">{b.location || 'Madurai'}</p>
                     </td>
                     <td className="py-3.5 px-4">
-                      <MemberTypeBadge memberType={b.memberType} size="sm" />
+                      <div className="space-y-1">
+                        <MemberTypeBadge memberType={b.memberType} size="sm" />
+                        {b.membershipCode && (
+                          <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded block w-fit">
+                            ID: {b.membershipCode}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <FoodPreferenceBadge preference={b.foodPreference} size="sm" />
@@ -333,21 +408,55 @@ export default function AdminBookingsPage() {
                       {formatPaise(b.totalPaise ?? b.totalAmountPaise ?? 0)}
                     </td>
                     <td className="py-3.5 px-4">
-                      <StatusBadge status={b.status} size="sm" />
+                      <div className="space-y-1">
+                        <StatusBadge status={b.status} size="sm" />
+                        {b.memberType === 'MEMBER' && (
+                          <div>
+                            {b.paymentStatus === 'PAID' ? (
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px]">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>PAID</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">
+                                <Clock className="w-2.5 h-2.5 text-amber-600" />
+                                <span>PENDING (Offline)</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedBooking(b);
-                          setRefundReason('');
-                          setRefundError(null);
-                          setRefundSuccess(null);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold inline-flex items-center gap-1.5 transition shadow-xs"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-[#08537B]" />
-                        Inspect
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        {b.memberType === 'MEMBER' && b.paymentStatus !== 'PAID' && (
+                          <button
+                            onClick={() => handleMarkAsPaid(b.id)}
+                            disabled={markingPaidId === b.id}
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold inline-flex items-center gap-1 transition shadow-xs disabled:opacity-50"
+                            title="Mark Member Payment as Received & Verified"
+                          >
+                            {markingPaidId === b.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            )}
+                            <span>Mark Paid</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedBooking(b);
+                            setRefundReason('');
+                            setRefundError(null);
+                            setRefundSuccess(null);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold inline-flex items-center gap-1.5 transition shadow-xs"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#08537B]" />
+                          Inspect
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -403,8 +512,41 @@ export default function AdminBookingsPage() {
               </button>
             </div>
 
+            {/* Member Payment Verification Banner in Modal */}
+            {selectedBooking.memberType === 'MEMBER' && selectedBooking.paymentStatus !== 'PAID' && (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div>
+                  <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>Offline Member Payment Pending</span>
+                  </h4>
+                  <p className="text-[11px] text-amber-700 mt-0.5">
+                    Member registered with code <strong>{selectedBooking.membershipCode || 'N/A'}</strong>. Passes and QR codes are active. Once internal payment or dues are confirmed, mark as paid.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleMarkAsPaid(selectedBooking.id)}
+                  disabled={markingPaidId === selectedBooking.id}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-60 shrink-0"
+                >
+                  {markingPaidId === selectedBooking.id ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Mark as Paid</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
             {/* Customer & Status Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-gray-50 p-4 rounded-2xl border border-gray-200">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs bg-gray-50 p-4 rounded-2xl border border-gray-200">
               <div>
                 <span className="text-gray-500 block">Delegate</span>
                 <span className="font-bold text-gray-900">{selectedBooking.customerName}</span>
@@ -416,20 +558,47 @@ export default function AdminBookingsPage() {
                 <span className="text-[11px] text-gray-500 block">{selectedBooking.location || 'Madurai'}</span>
               </div>
               <div>
-                <span className="text-gray-500 block">Membership & Lunch</span>
-                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                <span className="text-gray-500 block">Membership</span>
+                <div className="space-y-1 mt-0.5">
                   <MemberTypeBadge memberType={selectedBooking.memberType} size="sm" />
-                  <FoodPreferenceBadge preference={selectedBooking.foodPreference} size="sm" />
+                  {selectedBooking.membershipCode ? (
+                    <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded block w-fit">
+                      ID: {selectedBooking.membershipCode}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 block">Non-Member</span>
+                  )}
                 </div>
               </div>
               <div>
-                <span className="text-gray-500 block">Total Amount</span>
-                <span className="font-bold font-mono text-emerald-700 text-sm block">
-                  {formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)}
-                </span>
-                <span className="mt-0.5 inline-block">
+                <span className="text-gray-500 block">Lunch & Total</span>
+                <div className="mt-0.5 space-y-1">
+                  <FoodPreferenceBadge preference={selectedBooking.foodPreference} size="sm" />
+                  <span className="font-bold font-mono text-emerald-700 block">
+                    {formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-500 block">Status & Payment</span>
+                <div className="space-y-1 mt-0.5">
                   <StatusBadge status={selectedBooking.status} size="sm" />
-                </span>
+                  {selectedBooking.memberType === 'MEMBER' && (
+                    <div>
+                      {selectedBooking.paymentStatus === 'PAID' ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px]">
+                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                          <span>PAID</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px]">
+                          <Clock className="w-2.5 h-2.5 text-amber-600" />
+                          <span>PENDING (Offline)</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

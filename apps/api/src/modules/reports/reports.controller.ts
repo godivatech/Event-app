@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
   Param,
   Res,
@@ -10,6 +11,7 @@ import { ReportsService } from './reports.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole, BookingStatus, TicketStatus } from '@prisma/client';
 import { Response } from 'express';
 
@@ -43,6 +45,14 @@ export class ReportsController {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 20,
     });
+  }
+
+  @Post('bookings/:bookingId/mark-paid')
+  async markBookingPaid(
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() staff: any
+  ) {
+    return this.reportsService.markMemberBookingPaid(bookingId, staff?.id || 'admin');
   }
 
   @Get('payments')

@@ -145,7 +145,7 @@ export default function BookingSuccessPage() {
               <CheckCircle className="w-7 h-7" />
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-              Payment Successful
+              {booking.memberType === 'MEMBER' ? 'Member Registration Confirmed' : 'Payment Successful'}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
               Your Booking is Confirmed!
@@ -154,9 +154,17 @@ export default function BookingSuccessPage() {
               We have reserved your admissions. Present these QR codes at the gate or download your PDF ticket booklet below.
             </p>
 
-            <div className="mt-5 inline-flex items-center gap-3 px-4 py-2 rounded-[10px] bg-white border border-emerald-200 text-xs font-mono font-bold text-slate-800">
-              <span>Booking Number:</span>
-              <span className="text-[#08537B] text-sm">{booking.bookingNumber}</span>
+            <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] bg-white border border-emerald-200 text-xs font-mono font-bold text-slate-800 shadow-xs">
+                <span className="text-slate-500 font-sans font-normal">Booking #:</span>
+                <span className="text-[#08537B]">{booking.bookingNumber}</span>
+              </div>
+              {booking.membershipCode && (
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-blue-50 border border-blue-200 text-xs font-mono font-bold text-blue-900 shadow-xs">
+                  <span className="text-blue-600 font-sans font-normal">Member Code:</span>
+                  <span>{booking.membershipCode}</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -323,6 +331,11 @@ export default function BookingSuccessPage() {
                         memberType={ticket.memberType || booking.memberType}
                         size="sm"
                       />
+                      {booking.membershipCode && (
+                        <span className="font-mono text-[10px] font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded inline-block mt-1">
+                          ID: {booking.membershipCode}
+                        </span>
+                      )}
                     </div>
 
                     <div className="pt-1">

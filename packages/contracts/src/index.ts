@@ -157,6 +157,7 @@ export interface CreateReservationDto {
   age?: number;
   agreedToTerms?: boolean;
   memberType?: MemberType;
+  membershipCode?: string;
   foodPreference?: FoodPreference;
   items: ReservationItemSelection[];
   idempotencyKey?: string;
@@ -170,6 +171,7 @@ export interface ReservationResponseDto {
   totalPaise: number;
   currency: string;
   recoveryCode: string; // ONLY returned once upon initial creation
+  isMember?: boolean;
   items: {
     ticketTypeId: string;
     ticketTypeName: string;
@@ -195,6 +197,8 @@ export interface BookingDetailDto {
   location?: string | null;
   age?: number | null;
   memberType?: MemberType;
+  membershipCode?: string | null;
+  paymentStatus?: string;
   foodPreference?: FoodPreference;
   currency: string;
   subtotalPaise: number;

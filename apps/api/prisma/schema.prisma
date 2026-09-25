@@ -218,6 +218,8 @@ model Booking {
   businessName           String?
   location               String?
   memberType             String         @default("NON_MEMBER")
+  membershipCode         String?
+  paymentStatus          String         @default("PENDING")
   foodPreference         String         @default("VEG")
   age                    Int?
   currency               String         @default("INR")
@@ -244,6 +246,8 @@ model Booking {
   @@index([createdAt])
   @@index([bookingNumber])
   @@index([memberType])
+  @@index([membershipCode])
+  @@index([paymentStatus])
   @@index([foodPreference])
 }
 
