@@ -74,12 +74,25 @@ export class BookingsService {
     const membershipCode = isMember ? dto.membershipCode?.trim() || null : null;
     const foodPreference = dto.foodPreference === 'NON_VEG' ? 'NON_VEG' : 'VEG';
 
-    // Validate membership code for CEDOI Members
-    if (isMember && (!membershipCode || membershipCode.length < 2)) {
-      throw new BadRequestException({
-        code: 'MISSING_MEMBERSHIP_CODE',
-        message: 'CEDOI Membership Code is required for member registrations.',
-      });
+    // Validate membership code for CEDOI Members (Strict Whitelist)
+    const validMemberCodes = (
+      process.env.VALID_MEMBERSHIP_CODES?.split(',') || ['CEDOI0014']
+    ).map((c) => c.trim().toUpperCase());
+
+    if (isMember) {
+      const normalizedCode = membershipCode ? membershipCode.trim().toUpperCase() : '';
+      if (!normalizedCode) {
+        throw new BadRequestException({
+          code: 'MISSING_MEMBERSHIP_CODE',
+          message: 'CEDOI Membership Code is required for member registrations.',
+        });
+      }
+      if (!validMemberCodes.includes(normalizedCode)) {
+        throw new BadRequestException({
+          code: 'INVALID_MEMBERSHIP_CODE',
+          message: 'Invalid CEDOI Membership Code. Only authorized member codes are accepted.',
+        });
+      }
     }
 
     // Age requirement validation (Strictly 18+)

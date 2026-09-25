@@ -258,9 +258,9 @@ export default function TicketSelectionPage() {
       return;
     }
 
-    // Strict validation for CEDOI members
+    // Strict validation for CEDOI members (Only authorized code accepted)
     if (memberType === 'MEMBER') {
-      const trimmedCode = membershipCode.trim();
+      const trimmedCode = membershipCode.trim().toUpperCase();
       if (!trimmedCode) {
         setMembershipCodeError('Please enter your CEDOI Membership ID or Code.');
         setErrorMessage('CEDOI Membership ID / Code is required for member registrations.');
@@ -273,9 +273,16 @@ export default function TicketSelectionPage() {
         }
         return;
       }
-      if (trimmedCode.length < 3) {
-        setMembershipCodeError('Membership ID / Code must be at least 3 characters.');
-        setErrorMessage('Please enter a valid CEDOI Membership ID (minimum 3 characters).');
+      if (trimmedCode !== 'CEDOI0014') {
+        setMembershipCodeError('Invalid Membership Code. Only authorized CEDOI member codes are accepted.');
+        setErrorMessage('Invalid Membership Code. Please enter an authorized CEDOI member code or select Non-Member Delegate.');
+        if (typeof document !== 'undefined') {
+          const elem = document.getElementById('membership-code-input');
+          if (elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elem.focus();
+          }
+        }
         return;
       }
     }
