@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
               <li>
                 <Link href="/" className="hover:text-gray-900 transition-colors">
-                  Upcoming Summits
+                  Event Details
                 </Link>
               </li>
               <li>

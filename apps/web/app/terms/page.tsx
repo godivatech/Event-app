@@ -215,7 +215,7 @@ export default function TermsAndConditionsPage() {
             </div>
             <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2 pl-11">
               <p>
-                5.1. CEDOI is committed to providing a professional, respectful, and safe summit environment. Attendees are expected to
+                5.1. CEDOI is committed to providing a professional, respectful, and safe event environment. Attendees are expected to
                 maintain courteous business etiquette at all times.
               </p>
               <p>
@@ -243,7 +243,7 @@ export default function TermsAndConditionsPage() {
             <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-2 pl-11">
               <p>
                 6.1. Official event photographers and accredited broadcast teams will be capturing video, still photography, and audio
-                recordings throughout the summit for archival, marketing, and media dissemination.
+                recordings throughout the event for archival, marketing, and media dissemination.
               </p>
               <p>
                 6.2. By entering the event premises, you irrevocably grant CEDOI, its media partners, and affiliates the right to use

@@ -28,7 +28,7 @@ export default function HelpPage() {
             <div className="bg-white rounded-[16px] p-5 border border-slate-200 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
                 <Ticket className="w-4 h-4 text-[#08537B]" />
-                <span>How do I enter the summit using my ticket?</span>
+                <span>How do I enter the awards event using my ticket?</span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
                 Present your on-screen QR code on your mobile browser or printed A4 PDF at the auditorium entrance. Staff will scan your pass using an authorized camera terminal. Each QR is valid for a single entry.
