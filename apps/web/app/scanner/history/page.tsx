@@ -29,9 +29,19 @@ interface HistoryItem {
     ticketNumber: string;
     admissionIndex: number;
     status: string;
+    attendeeName?: string | null;
+    businessName?: string | null;
+    memberType?: string | null;
+    foodPreference?: string | null;
     ticketType: {
       name: string;
     };
+    booking?: {
+      customerName: string;
+      businessName?: string | null;
+      memberType?: string | null;
+      foodPreference?: string | null;
+    } | null;
   };
   gate?: {
     name: string;
@@ -167,17 +177,17 @@ export default function ScannerHistoryPage() {
           history.map((item) => {
             const attendeeName =
               item.ticket?.attendeeName ||
-              (item.ticket as any)?.booking?.customerName ||
+              item.ticket?.booking?.customerName ||
               'Admitted Attendee';
             const businessName =
               item.ticket?.businessName ||
-              (item.ticket as any)?.booking?.businessName;
+              item.ticket?.booking?.businessName;
             const foodPref =
               item.ticket?.foodPreference ||
-              (item.ticket as any)?.booking?.foodPreference;
+              item.ticket?.booking?.foodPreference;
             const memberType =
               item.ticket?.memberType ||
-              (item.ticket as any)?.booking?.memberType;
+              item.ticket?.booking?.memberType;
 
             return (
               <div
