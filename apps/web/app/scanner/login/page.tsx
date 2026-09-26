@@ -60,12 +60,12 @@ export default function ScannerLoginPage() {
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-[#F7F7F7] font-sans antialiased">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="w-48 h-20 overflow-hidden relative mx-auto mb-2 flex items-center justify-center">
+          <div className="inline-flex items-center justify-center w-48 h-20 overflow-hidden relative mx-auto mb-2">
             <Image
               src="/brand/logo.png"
               alt="CEDOI"
               fill
-              className="object-contain p-1.5"
+              className="object-contain scale-[2.5]"
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gate Staff Login</h1>
