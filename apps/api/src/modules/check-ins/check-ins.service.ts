@@ -319,6 +319,7 @@ export class CheckInsService {
           ticket: {
             include: {
               ticketType: true,
+              booking: true,
             },
           },
           gate: true,

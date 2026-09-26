@@ -164,40 +164,86 @@ export default function ScannerHistoryPage() {
             </p>
           </div>
         ) : (
-          history.map((item) => (
-            <div
-              key={item.id}
-              className="p-4 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 transition shadow-xs space-y-2.5"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-gray-900 tracking-wider">
-                  {item.ticket?.ticketNumber || 'UNKNOWN'}
-                </span>
-                <StatusBadge status={item.result} size="sm" />
-              </div>
+          history.map((item) => {
+            const attendeeName =
+              item.ticket?.attendeeName ||
+              (item.ticket as any)?.booking?.customerName ||
+              'Admitted Attendee';
+            const businessName =
+              item.ticket?.businessName ||
+              (item.ticket as any)?.booking?.businessName;
+            const foodPref =
+              item.ticket?.foodPreference ||
+              (item.ticket as any)?.booking?.foodPreference;
+            const memberType =
+              item.ticket?.memberType ||
+              (item.ticket as any)?.booking?.memberType;
 
-              <div className="flex items-center justify-between text-xs text-gray-600">
-                <span className="font-semibold text-gray-800">
-                  {item.ticket?.ticketType?.name || 'Event Pass'}
-                  {item.ticket?.admissionIndex ? ` (#${item.ticket.admissionIndex})` : ''}
-                </span>
-                <span className="flex items-center gap-1 text-[11px] text-gray-500 font-medium">
-                  <MapPin className="w-3 h-3 text-[#EE8518]" />
-                  {item.gate?.name || 'Gate Terminal'}
-                </span>
-              </div>
+            return (
+              <div
+                key={item.id}
+                className="p-4 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 transition shadow-xs space-y-3"
+              >
+                {/* Header: Attendee Name & Status Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-gray-900 truncate">
+                      {attendeeName}
+                    </h3>
+                    {businessName && (
+                      <p className="text-xs text-gray-500 truncate font-medium mt-0.5">
+                        {businessName}
+                      </p>
+                    )}
+                  </div>
+                  <StatusBadge status={item.result} size="sm" />
+                </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px] text-gray-400">
-                <span className="flex items-center gap-1 text-gray-500">
-                  <Clock className="w-3 h-3" />
-                  {formatDateTime(item.checkedInAt)}
-                </span>
-                <span className="font-mono text-gray-400 text-[10px]">
-                  Req: {item.requestId.slice(0, 8)}...
-                </span>
+                {/* Badges & Pass Classification */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-[#08537B] border border-blue-200">
+                    {item.ticket?.ticketType?.name || 'Event Pass'}
+                    {item.ticket?.admissionIndex ? ` (#${item.ticket.admissionIndex})` : ''}
+                  </span>
+
+                  {foodPref && (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
+                        foodPref.toUpperCase() === 'VEG'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {foodPref.toUpperCase() === 'VEG' ? '🥬 VEG' : '🍗 NON-VEG'}
+                    </span>
+                  )}
+
+                  {memberType && memberType !== 'NON_MEMBER' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                      CEDOI Member
+                    </span>
+                  )}
+                </div>
+
+                {/* Footer: Ticket Number, Gate, and Timestamp */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pt-2.5 border-t border-gray-100 text-[11px] text-gray-500">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-medium text-gray-700">
+                      {item.ticket?.ticketNumber || 'UNKNOWN'}
+                    </span>
+                    <span className="flex items-center gap-1 text-[#EE8518] font-medium">
+                      <MapPin className="w-3 h-3" />
+                      {item.gate?.name || 'Gate Terminal'}
+                    </span>
+                  </div>
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    {formatDateTime(item.checkedInAt)}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
