@@ -47,7 +47,7 @@ export default function AdminSettingsPage() {
 
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-200">
               <span className="text-gray-600">Maximum Admissions Per Booking</span>
-              <span className="font-mono font-bold text-gray-900">10 Admissions</span>
+              <span className="font-mono font-bold text-gray-900">1 Admission</span>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-200">

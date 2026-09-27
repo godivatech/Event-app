@@ -15,7 +15,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   onQuantityChange,
 }) => {
   const isSoldOut = ticketType.remainingCapacity <= 0 || ticketType.status === 'SOLD_OUT';
-  const maxAllowed = Math.min(ticketType.maxPerBooking, ticketType.remainingCapacity);
+  const maxAllowed = Math.min(1, ticketType.maxPerBooking || 1, ticketType.remainingCapacity);
 
   return (
     <div
@@ -50,7 +50,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
             <div className="flex items-center gap-1 font-medium">
               <Users className="w-3.5 h-3.5 text-slate-400" />
-              <span>Max {ticketType.maxPerBooking} per booking</span>
+              <span>1 pass per delegate</span>
             </div>
           </div>
         </div>

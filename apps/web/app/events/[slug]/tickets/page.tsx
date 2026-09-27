@@ -86,15 +86,32 @@ export default function TicketSelectionPage() {
                 setAgreedToTerms(parsed.agreedToTerms);
               }
               if (parsed.quantities && typeof parsed.quantities === 'object') {
+                let selectedOne = false;
                 Object.keys(parsed.quantities).forEach((k) => {
                   if (initialQty[k] !== undefined) {
-                    initialQty[k] = parsed.quantities[k];
+                    if (!selectedOne && Number(parsed.quantities[k]) > 0) {
+                      initialQty[k] = 1;
+                      selectedOne = true;
+                    } else {
+                      initialQty[k] = 0;
+                    }
                   }
                 });
               }
             }
           } catch (e) {
             // Ignore parse errors
+          }
+        }
+
+        // If no draft had a selection and there is an available active ticket type, pre-select 1 ticket
+        const hasSelection = Object.values(initialQty).some((q) => q > 0);
+        if (!hasSelection) {
+          const firstAvailable = data.ticketTypes.find(
+            (tt) => tt.status === 'ACTIVE' && tt.remainingCapacity > 0
+          );
+          if (firstAvailable) {
+            initialQty[firstAvailable.id] = 1;
           }
         }
 
@@ -154,10 +171,11 @@ export default function TicketSelectionPage() {
   };
 
   const handleQuantityChange = (ticketTypeId: string, qty: number) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [ticketTypeId]: qty,
-    }));
+    const cappedQty = Math.min(1, Math.max(0, qty));
+    // Strictly 1 ticket per registration across all categories
+    setQuantities({
+      [ticketTypeId]: cappedQty,
+    });
     setErrorMessage(null);
     setTicketError(false);
   };
@@ -210,13 +228,19 @@ export default function TicketSelectionPage() {
 
     if (totalTickets === 0) {
       setTicketError(true);
-      setErrorMessage('Please select at least 1 ticket category above to proceed.');
+      setErrorMessage('Please select 1 pass above to proceed with your registration.');
       if (typeof document !== 'undefined') {
         const elem = document.getElementById('ticket-selection-section');
         if (elem) {
           elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
+      return;
+    }
+
+    if (totalTickets > 1) {
+      setTicketError(true);
+      setErrorMessage('Registration is limited to 1 pass per delegate.');
       return;
     }
 
@@ -430,7 +454,7 @@ export default function TicketSelectionPage() {
             {ticketError && (
               <div className="p-3.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-900 text-xs font-semibold flex items-center gap-2.5 animate-pulse shadow-sm">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Please choose at least 1 pass by clicking the <strong>+</strong> button on any category below.</span>
+                <span>Please choose 1 pass by clicking the <strong>+</strong> button on the category below.</span>
               </div>
             )}
 

@@ -120,6 +120,9 @@ export default function TermsAndConditionsPage() {
               <p>
                 1.3. Gate security staff reserve the right to verify delegate eligibility and age at the venue gate.
               </p>
+              <p>
+                1.4. Registrations are strictly limited to <strong>one (1) admission pass per delegate/registration</strong> to ensure fair and equitable allocation of summit seating.
+              </p>
             </div>
           </section>
 

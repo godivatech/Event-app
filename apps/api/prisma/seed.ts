@@ -154,6 +154,7 @@ async function main() {
       description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
+      maxPerBooking: 1,
       status: TicketTypeStatus.ACTIVE,
     },
     create: {
@@ -163,7 +164,7 @@ async function main() {
       description: 'All-inclusive entry: 1,500 Business Owners networking, knowledge updates, unlimited celebrity entertainment, motivational speeches, gourmet lunch & beverages, ₹10,000 discount coupons, return gift & lucky draw.',
       unitPricePaise: 149900,
       capacity: 1500,
-      maxPerBooking: 10,
+      maxPerBooking: 1,
       sortOrder: 1,
       status: TicketTypeStatus.ACTIVE,
     },
