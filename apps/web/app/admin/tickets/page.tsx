@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ShieldAlert,
   RefreshCw,
+  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -311,16 +312,28 @@ export default function AdminTicketsPage() {
                           <span className="text-gray-400 text-[11px]">Awaiting Gate Scan</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <a
-                          href={`/api/v1/tickets/${t.booking.bookingNumber}/pdf`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold transition shadow-xs"
-                        >
-                          <Download className="w-3.5 h-3.5 text-[#08537B]" />
-                          PDF
-                        </a>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          <a
+                            href={`https://wa.me/${(attendeePhone || '').replace(/[^0-9]/g, '').length === 10 ? '91' + (attendeePhone || '').replace(/[^0-9]/g, '') : (attendeePhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Dear ${attendeeName},\n\nYour Delegate Pass for CEDOI Awards & Convention 2026 is CONFIRMED! 🎟️✨\n\n📌 Booking Ref: ${t.booking.bookingNumber}\n📅 Date: Saturday, 24 October 2026\n📍 Venue: Courtyard by Marriott, Madurai\n\n👉 View your Live QR Pass & Download PDF Ticket:\n${typeof window !== 'undefined' ? window.location.origin : 'https://event.cedoi.org'}/booking/${t.booking.bookingNumber}/success\n\nPlease show this QR code at the registration desk for express check-in.\n\nWarm regards,\nTeam CEDOI`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition shadow-xs"
+                            title="Send Ticket via WhatsApp"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <span>WhatsApp</span>
+                          </a>
+                          <a
+                            href={`/api/v1/tickets/${t.booking.bookingNumber}/pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-semibold transition shadow-xs"
+                          >
+                            <Download className="w-3.5 h-3.5 text-[#08537B]" />
+                            PDF
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );

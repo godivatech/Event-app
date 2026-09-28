@@ -79,6 +79,17 @@ export class BookingsController {
     return this.bookingsService.getBookingByNumber(bookingNumber, guestToken, staffUser);
   }
 
+  @Post(':bookingNumber/submit-utr')
+  @UseGuards(GuestSessionGuard)
+  @HttpCode(HttpStatus.OK)
+  async submitUtr(
+    @Param('bookingNumber') bookingNumber: string,
+    @Body('utr') utr: string,
+    @GuestSessionToken() guestToken: string
+  ) {
+    return this.bookingsService.recordUtrSubmission(bookingNumber, utr, guestToken);
+  }
+
   @Post('recover')
   @UseGuards(GuestSessionGuard)
   @HttpCode(HttpStatus.OK)

@@ -17,7 +17,7 @@ import {
   BookingStatus,
   EventStatus,
 } from '@cedoi/contracts';
-import { Prisma, ReservationStatus } from '@prisma/client';
+import { Prisma, ReservationStatus, PaymentAttemptStatus } from '@prisma/client';
 import { TicketsService } from '../tickets/tickets.service';
 
 @Injectable()
@@ -176,12 +176,12 @@ export class BookingsService {
     // Execute atomic reservation + booking creation in transaction
     const booking = await this.prisma.$transaction(
       async (tx) => {
-        // 1. Reserve inventory with row-locking
+        // 1. Reserve inventory with row-locking (24 hours hold for manual UPI payment verification)
         const { expiresAt, verifiedItems } =
           await this.inventoryService.reserveInventory(
             event.id,
             dto.items,
-            10, // 10 minutes hold
+            1440, // 24 hours hold
             tx
           );
 
@@ -564,6 +564,59 @@ export class BookingsService {
       bookingNumber: booking.bookingNumber,
       newRecoveryCode: newRawRecoveryCode,
       message: 'New recovery code successfully generated and issued by staff.',
+    };
+  }
+
+  async recordUtrSubmission(bookingNumber: string, utr: string, guestToken?: string) {
+    const cleanUtr = (utr || '').trim().replace(/[^a-zA-Z0-9]/g, '');
+    if (!cleanUtr || cleanUtr.length < 6) {
+      throw new BadRequestException({
+        code: 'INVALID_UTR',
+        message: 'Please provide a valid UPI reference / UTR number (at least 6 alphanumeric characters).',
+      });
+    }
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { bookingNumber },
+      include: { accessSessions: true },
+    });
+
+    if (!booking) {
+      throw new NotFoundException({
+        code: 'BOOKING_NOT_FOUND',
+        message: 'Booking not found.',
+      });
+    }
+
+    // Authorize guest if guestToken provided
+    if (guestToken) {
+      const guestTokenHash = CryptoUtil.sha256(guestToken);
+      const isAuthorized =
+        booking.guestSessionTokenHash === guestTokenHash ||
+        booking.accessSessions.some((s) => s.tokenHash === guestTokenHash && s.expiresAt > new Date());
+      if (!isAuthorized) {
+        throw new UnauthorizedException('Unauthorized access to this booking.');
+      }
+    }
+
+    // Upsert or create PaymentAttempt with UTR
+    const attempt = await this.prisma.paymentAttempt.create({
+      data: {
+        bookingId: booking.id,
+        provider: 'UPI_MANUAL',
+        cfOrderId: `UPI_MANUAL_${booking.bookingNumber}`,
+        cfPaymentId: `UTR_${cleanUtr}`,
+        amountPaise: booking.totalPaise,
+        status: PaymentAttemptStatus.PENDING,
+        failureReason: `UTR: ${cleanUtr}`,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Payment reference submitted successfully for organizer verification.',
+      utr: cleanUtr,
+      bookingNumber: booking.bookingNumber,
     };
   }
 }

@@ -20,6 +20,10 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  MessageSquare,
+  Copy,
+  ExternalLink,
+  Check,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -96,9 +100,79 @@ export default function AdminBookingsPage() {
   const [refundError, setRefundError] = useState<string | null>(null);
   const [refundSuccess, setRefundSuccess] = useState<string | null>(null);
 
-  // Member offline payment status actions
+  // Payment status & WhatsApp dispatch actions
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [justPaidBooking, setJustPaidBooking] = useState<AdminBooking | null>(null);
+  const [copiedBookingNumber, setCopiedBookingNumber] = useState<string | null>(null);
+
+  const getCleanPhone = (phone: string) => {
+    let cleaned = (phone || '').replace(/[^0-9]/g, '');
+    if (cleaned.length === 10) cleaned = '91' + cleaned;
+    return cleaned;
+  };
+
+  const getTicketUrl = (bookingNumber: string) => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/booking/${bookingNumber}/success`;
+    }
+    return `https://event.cedoi.org/booking/${bookingNumber}/success`;
+  };
+
+  const getWhatsAppTicketUrl = (b: AdminBooking) => {
+    const phone = getCleanPhone(b.customerPhone);
+    const ticketUrl = getTicketUrl(b.bookingNumber);
+    const message = `Dear ${b.customerName},\n\nYour Delegate Pass for CEDOI Awards & Convention 2026 is CONFIRMED! 🎟️✨\n\n📌 Booking Ref: ${b.bookingNumber}\n📅 Date: Saturday, 24 October 2026\n📍 Venue: Courtyard by Marriott, Madurai\n\n👉 View your Live QR Pass & Download PDF Ticket:\n${ticketUrl}\n\nPlease show this QR code at the registration desk for express check-in.\n\nWarm regards,\nTeam CEDOI`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  };
+
+  const getWhatsAppPaymentReminderUrl = (b: AdminBooking) => {
+    const phone = getCleanPhone(b.customerPhone);
+    const amount = (b.totalPaise ?? b.totalAmountPaise ?? 0) / 100;
+    const message = `Dear ${b.customerName},\n\nGreetings from CEDOI! 👋\n\nYour seat for CEDOI Awards & Convention 2026 is reserved (Ref: ${b.bookingNumber}).\n\nTo confirm your delegate pass, please transfer ₹${amount.toLocaleString('en-IN')} via UPI:\n📌 UPI ID: 9790612280@axl\n🏢 Payee: CEDOI AWARDS 2026\n📝 Reference Note: ${b.bookingNumber}\n\nOnce paid, please reply with your payment screenshot to receive your official QR Pass.\n\nWarm regards,\nTeam CEDOI`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  };
+
+  const handleCopyTicketLink = (bookingNumber: string) => {
+    const url = getTicketUrl(bookingNumber);
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedBookingNumber(bookingNumber);
+      setTimeout(() => setCopiedBookingNumber(null), 2500);
+      setActionMessage({
+        type: 'success',
+        text: `Copied ticket pass link for ${bookingNumber} to clipboard!`,
+      });
+    }
+  };
+
+  const handleDownloadPdf = async (bookingNumber: string) => {
+    try {
+      const token = localStorage.getItem('cedoi_admin_token') || localStorage.getItem('cedoi_staff_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/v1/tickets/${bookingNumber}/pdf`, {
+        method: 'GET',
+        credentials: 'include',
+        headers,
+      });
+      if (!res.ok) throw new Error('PDF not ready or download failed.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CEDOI_${bookingNumber}_Ticket.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err: any) {
+      setActionMessage({
+        type: 'error',
+        text: err.message || 'Failed to download PDF ticket.',
+      });
+    }
+  };
 
   const handleMarkAsPaid = async (bookingId: string) => {
     setMarkingPaidId(bookingId);
@@ -107,6 +181,11 @@ export default function AdminBookingsPage() {
       await apiClient<any>(`api/v1/admin/bookings/${bookingId}/mark-paid`, {
         method: 'POST',
       });
+      // Find booking to trigger prompt
+      const target = bookings.find((b) => b.id === bookingId);
+      if (target) {
+        setJustPaidBooking({ ...target, paymentStatus: 'PAID', status: 'CONFIRMED' });
+      }
       // Optimistically update local state
       setBookings((prev) =>
         prev.map((b) =>
@@ -120,13 +199,13 @@ export default function AdminBookingsPage() {
       }
       setActionMessage({
         type: 'success',
-        text: 'Member payment status marked as PAID successfully.',
+        text: 'Payment status marked as PAID & Tickets successfully generated.',
       });
       fetchBookings();
     } catch (err: any) {
       setActionMessage({
         type: 'error',
-        text: err.message || 'Failed to update member payment status.',
+        text: err.message || 'Failed to update payment status.',
       });
     } finally {
       setMarkingPaidId(null);
@@ -382,6 +461,11 @@ export default function AdminBookingsPage() {
                       {b.customerEmail && (
                         <p className="text-[10px] text-gray-400 truncate max-w-[150px]">{b.customerEmail}</p>
                       )}
+                      {b.paymentAttempts?.[0]?.cfPaymentId?.startsWith('UTR_') && (
+                        <span className="mt-1 inline-block font-mono text-[10px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">
+                          UTR: {b.paymentAttempts[0].cfPaymentId.replace('UTR_', '')}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <p className="font-semibold text-gray-800">{b.businessName || '—'}</p>
@@ -411,40 +495,62 @@ export default function AdminBookingsPage() {
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
                         <StatusBadge status={b.status} size="sm" />
-                        {b.memberType === 'MEMBER' && (
-                          <div>
-                            {b.paymentStatus === 'PAID' ? (
-                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
-                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                                <span>PAID</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
-                                <Clock className="w-2.5 h-2.5 text-amber-600" />
-                                <span>PENDING (Offline)</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div>
+                          {b.paymentStatus === 'PAID' ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>PAID</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] tracking-wide">
+                              <Clock className="w-2.5 h-2.5 text-amber-600" />
+                              <span>PENDING</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center justify-end gap-2">
-                        {b.memberType === 'MEMBER' && b.paymentStatus !== 'PAID' && (
-                          <button
-                            onClick={() => handleMarkAsPaid(b.id)}
-                            disabled={markingPaidId === b.id}
-                            className="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
-                            title="Mark Member Payment as Received & Verified"
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        {b.paymentStatus !== 'PAID' ? (
+                          <>
+                            <button
+                              onClick={() => handleMarkAsPaid(b.id)}
+                              disabled={markingPaidId === b.id}
+                              className="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs disabled:opacity-50"
+                              title="Mark Payment as Received & Verified"
+                            >
+                              {markingPaidId === b.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                              ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              )}
+                              <span>Mark Paid</span>
+                            </button>
+                            <a
+                              href={getWhatsAppPaymentReminderUrl(b)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="h-8 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 transition shadow-xs"
+                              title="Send UPI Payment Details on WhatsApp"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Remind</span>
+                            </a>
+                          </>
+                        ) : (
+                          <a
+                            href={getWhatsAppTicketUrl(b)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-8 px-2.5 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1caa51] text-white text-xs font-bold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs"
+                            title="Send Ticket Pass directly to Delegate on WhatsApp"
                           >
-                            {markingPaidId === b.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-700" />
-                            ) : (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            )}
-                            <span>Mark Paid</span>
-                          </button>
+                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <span>WhatsApp Ticket</span>
+                          </a>
                         )}
+
                         <button
                           onClick={() => {
                             setSelectedBooking(b);
@@ -452,7 +558,8 @@ export default function AdminBookingsPage() {
                             setRefundError(null);
                             setRefundSuccess(null);
                           }}
-                          className="h-8 px-3 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs"
+                          className="h-8 px-2.5 rounded-lg bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs"
+                          title="Inspect full booking details"
                         >
                           <Eye className="w-3.5 h-3.5 text-[#08537B] shrink-0" />
                           <span>Inspect</span>
@@ -513,36 +620,99 @@ export default function AdminBookingsPage() {
               </button>
             </div>
 
-            {/* Member Payment Verification Banner in Modal */}
-            {selectedBooking.memberType === 'MEMBER' && selectedBooking.paymentStatus !== 'PAID' && (
+            {/* Payment Verification / Action Banner in Modal */}
+            {selectedBooking.paymentStatus !== 'PAID' ? (
               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div>
                   <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-amber-700" />
-                    <span>Offline Member Payment Pending</span>
+                    <span>Payment Pending Verification</span>
                   </h4>
                   <p className="text-[11px] text-amber-700 mt-0.5">
-                    Member registered with code <strong>{selectedBooking.membershipCode || 'N/A'}</strong>. Passes and QR codes are active. Once internal payment or dues are confirmed, mark as paid.
+                    Total Payable:{' '}
+                    <strong>
+                      {formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)}
+                    </strong>
+                    . Once verified via bank SMS or WhatsApp screenshot, click Mark as Paid to activate pass.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleMarkAsPaid(selectedBooking.id)}
-                  disabled={markingPaidId === selectedBooking.id}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-60 shrink-0"
-                >
-                  {markingPaidId === selectedBooking.id ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Updating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Mark as Paid</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={getWhatsAppPaymentReminderUrl(selectedBooking)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold shadow-xs transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Send UPI Reminder</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleMarkAsPaid(selectedBooking.id)}
+                    disabled={markingPaidId === selectedBooking.id}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition disabled:opacity-60"
+                  >
+                    {markingPaidId === selectedBooking.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Mark as Paid</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Pass Confirmed & Tickets Generated</span>
+                  </h4>
+                  <p className="text-[11px] text-emerald-700 mt-0.5">
+                    Official encrypted QR pass and PDF ticket are live and ready for admission check-in.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <a
+                    href={getWhatsAppTicketUrl(selectedBooking)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-bold shadow-xs transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                    <span>WhatsApp Ticket</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyTicketLink(selectedBooking.bookingNumber)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition"
+                  >
+                    {copiedBookingNumber === selectedBooking.bookingNumber ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPdf(selectedBooking.bookingNumber)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Download PDF</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -704,6 +874,54 @@ export default function AdminBookingsPage() {
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* Instant Action Prompt upon Marking Paid */}
+      {justPaidBooking && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Payment Approved!</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Booking <strong>{justPaidBooking.bookingNumber}</strong> for <strong>{justPaidBooking.customerName}</strong> is now marked as PAID and ticket pass generated.
+              </p>
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left text-xs space-y-1">
+              <div className="flex justify-between text-gray-600">
+                <span>Amount:</span>
+                <span className="font-bold text-gray-900">
+                  {formatPaise(justPaidBooking.totalPaise ?? justPaidBooking.totalAmountPaise ?? 0)}
+                </span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Phone:</span>
+                <span className="font-semibold text-gray-800">{justPaidBooking.customerPhone}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <a
+                href={getWhatsAppTicketUrl(justPaidBooking)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setJustPaidBooking(null)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-sm shadow-md transition"
+              >
+                <MessageSquare className="w-4 h-4 fill-current" />
+                <span>Send Ticket via WhatsApp Now</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setJustPaidBooking(null)}
+                className="w-full py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-xs font-semibold transition"
+              >
+                Done (Close)
+              </button>
+            </div>
           </div>
         </div>
       )}

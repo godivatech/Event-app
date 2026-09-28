@@ -8,10 +8,14 @@ import {
   BookingStatus,
 } from '@prisma/client';
 import { AdminDashboardMetricsDto } from '@cedoi/contracts';
+import { TicketsService } from '../tickets/tickets.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ticketsService: TicketsService
+  ) {}
 
   /**
    * Calculates authoritative, real database aggregates for the Admin Dashboard.
@@ -242,7 +246,7 @@ export class ReportsService {
   async markMemberBookingPaid(bookingId: string, staffUserId: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { event: true },
+      include: { event: true, items: true, reservation: true },
     });
 
     if (!booking) {
@@ -253,6 +257,15 @@ export class ReportsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // 1. Consume reservation if it exists
+      if (booking.reservation) {
+        await tx.reservation.update({
+          where: { id: booking.reservation.id },
+          data: { status: ReservationStatus.CONSUMED },
+        });
+      }
+
+      // 2. Mark booking as CONFIRMED and PAID
       const updated = await tx.booking.update({
         where: { id: bookingId },
         data: {
@@ -261,7 +274,10 @@ export class ReportsService {
         },
       });
 
-      // Record offline captured payment attempt for accounting audit & gross collections
+      // 3. Issue tickets & generate QR tokens + PDF artifact if not already issued
+      await this.ticketsService.issueTicketsForBooking(tx, booking.id);
+
+      // 4. Record offline captured payment attempt for accounting audit & gross collections
       await tx.paymentAttempt.create({
         data: {
           bookingId: booking.id,
