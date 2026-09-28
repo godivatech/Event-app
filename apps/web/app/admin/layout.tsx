@@ -310,10 +310,6 @@ export default function AdminLayout({
               <h2 className="text-sm font-bold text-gray-900 hidden sm:block">
                 CEDOI Awards 2026
               </h2>
-              <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live Ticketing Feed Active
-              </span>
             </div>
           </div>
 
