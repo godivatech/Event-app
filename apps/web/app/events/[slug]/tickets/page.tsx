@@ -454,7 +454,7 @@ export default function TicketSelectionPage() {
             {ticketError && (
               <div className="p-3.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-900 text-xs font-semibold flex items-center gap-2.5 animate-pulse shadow-sm">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Please choose 1 pass by clicking the <strong>+</strong> button on the category below.</span>
+                <span>Please select your admission pass from the category below to proceed.</span>
               </div>
             )}
 
