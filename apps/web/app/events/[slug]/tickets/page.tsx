@@ -437,7 +437,7 @@ export default function TicketSelectionPage() {
           <div id="ticket-selection-section" className="space-y-4 scroll-mt-24">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <span>1. Choose Category & Quantities</span>
+                <span>1. Choose Your Admission Pass</span>
                 <span className="text-red-500">*</span>
               </h2>
               <span
@@ -447,7 +447,7 @@ export default function TicketSelectionPage() {
                     : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {totalTickets} ticket{totalTickets === 1 ? '' : 's'} selected
+                {totalTickets > 0 ? '1 Pass Selected' : 'No Pass Selected'}
               </span>
             </div>
 

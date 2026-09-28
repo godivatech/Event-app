@@ -345,7 +345,7 @@ export default function BookingReviewAndPaymentPage() {
               className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-[#08537B] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Modify Ticket Quantities</span>
+              <span>Modify Pass Selection</span>
             </button>
           </div>
 
