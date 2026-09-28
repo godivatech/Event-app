@@ -342,6 +342,7 @@ export class BookingsService {
         },
         pdfArtifact: true,
         accessSessions: true,
+        reservation: true,
       },
     });
 
@@ -371,6 +372,22 @@ export class BookingsService {
         code: 'UNAUTHORIZED_BOOKING_ACCESS',
         message: 'You do not have permission to view this booking. Please use your recovery code.',
       });
+    }
+
+    // Self-healing: if booking is CONFIRMED but tickets have not been issued yet, issue them immediately
+    if (booking.status === BookingStatus.CONFIRMED && booking.tickets.length === 0) {
+      await this.ticketsService.issueTicketsForBooking(this.prisma, booking.id);
+      booking.tickets = await this.prisma.ticket.findMany({
+        where: { bookingId: booking.id },
+        include: { ticketType: true },
+        orderBy: { admissionIndex: 'asc' },
+      });
+      if (booking.reservation && booking.reservation.status !== ReservationStatus.CONSUMED) {
+        await this.prisma.reservation.update({
+          where: { id: booking.reservation.id },
+          data: { status: ReservationStatus.CONSUMED },
+        });
+      }
     }
 
     const latestPayment = booking.paymentAttempts[0] || null;
