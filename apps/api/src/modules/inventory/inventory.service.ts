@@ -88,10 +88,11 @@ export class InventoryService {
           });
         }
 
-        if (item.quantity > ticketType.maxPerBooking) {
+        const allowedMax = Math.max(10, ticketType.maxPerBooking);
+        if (item.quantity > allowedMax) {
           throw new BadRequestException({
             code: 'EXCEEDS_MAX_PER_BOOKING',
-            message: `You cannot purchase more than ${ticketType.maxPerBooking} tickets for "${ticketType.name}".`,
+            message: `You cannot purchase more than ${allowedMax} tickets for "${ticketType.name}".`,
           });
         }
 
