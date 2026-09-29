@@ -6,7 +6,7 @@ import { Footer } from '../../../components/layout/Footer';
 import { apiClient } from '../../../lib/api-client';
 import { PublicEventDto } from '@cedoi/contracts';
 import { formatEventDate, formatEventTime, formatPaise } from '../../../lib/formatters';
-import { Calendar, MapPin, Clock, ArrowRight, ShieldCheck, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, Clock, ArrowRight, ShieldCheck, Check, Sparkles, AlertCircle, Award, Briefcase } from 'lucide-react';
 
 async function getEvent(slug: string): Promise<PublicEventDto | null> {
   try {
@@ -141,13 +141,29 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
                 ))}
               </div>
 
-              <Link
-                href={`/events/${event.slug}/tickets`}
-                className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-[12px] bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] text-white font-bold text-sm shadow-sm transition-colors"
-              >
-                <span>Select Tickets & Book</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="space-y-2.5">
+                <Link
+                  href={`/events/${event.slug}/tickets`}
+                  className="w-full inline-flex items-center justify-between py-3.5 px-5 rounded-[12px] bg-[#08537B] hover:bg-[#064364] active:bg-[#053752] text-white font-bold text-xs sm:text-sm shadow-sm transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#EE8518]" />
+                    <span>CEDOI Member Registration</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+
+                <Link
+                  href={`/events/${event.slug}/delegate`}
+                  className="w-full inline-flex items-center justify-between py-3.5 px-5 rounded-[12px] bg-[#EE8518] hover:bg-[#d26b0f] active:bg-[#ab4e10] text-white font-bold text-xs sm:text-sm shadow-sm transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    <span>Non-Member Delegate Pass</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -374,8 +374,18 @@ export class BookingsService {
       });
     }
 
-    // Self-healing: if booking is CONFIRMED but tickets have not been issued yet, issue them immediately
-    if (booking.status === BookingStatus.CONFIRMED && booking.tickets.length === 0) {
+    // Self-healing: if booking is CONFIRMED or PAID but tickets have not been issued yet, issue them immediately
+    if (
+      (booking.status === BookingStatus.CONFIRMED || (booking as any).paymentStatus === 'PAID') &&
+      booking.tickets.length === 0
+    ) {
+      if (booking.status !== BookingStatus.CONFIRMED) {
+        booking.status = BookingStatus.CONFIRMED;
+        await this.prisma.booking.update({
+          where: { id: booking.id },
+          data: { status: BookingStatus.CONFIRMED },
+        });
+      }
       await this.ticketsService.issueTicketsForBooking(this.prisma, booking.id);
       booking.tickets = await this.prisma.ticket.findMany({
         where: { bookingId: booking.id },

@@ -802,6 +802,19 @@ export default function AdminBookingsPage() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="bg-gray-50 border-t border-gray-200 text-gray-900 font-bold">
+                    <tr>
+                      <td className="py-2.5 px-3">Total Admissions</td>
+                      <td className="py-2.5 px-3 text-center font-mono text-[#08537B]">
+                        {selectedBooking.items.reduce((s, it) => s + it.quantity, 0)}{' '}
+                        {selectedBooking.items.reduce((s, it) => s + it.quantity, 0) === 1 ? 'Pass' : 'Passes'}
+                      </td>
+                      <td className="py-2.5 px-3"></td>
+                      <td className="py-2.5 px-3 text-right font-mono text-emerald-700">
+                        {formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>

@@ -7,7 +7,7 @@ import { Footer } from '../../../../components/layout/Footer';
 import { StepIndicator } from '../../../../components/booking/StepIndicator';
 import { TicketCard } from '../../../../components/booking/TicketCard';
 import Link from 'next/link';
-import { apiClient, ApiError } from '../../../../lib/api-client';
+import { apiClient } from '../../../../lib/api-client';
 import { PublicEventDto, ReservationResponseDto } from '@cedoi/contracts';
 import { formatPaise } from '../../../../lib/formatters';
 import { VegVectorIcon, NonVegVectorIcon } from '@cedoi/ui';
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TicketSelectionSkeleton } from '../../../../components/skeletons';
 
-export default function TicketSelectionPage() {
+export default function NonMemberDelegatePage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
@@ -42,9 +42,6 @@ export default function TicketSelectionPage() {
   const [ageWarning, setAgeWarning] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState(false);
-  const memberType = 'MEMBER';
-  const [membershipCode, setMembershipCode] = useState('');
-  const [membershipCodeError, setMembershipCodeError] = useState<string | null>(null);
   const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG'>('VEG');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,10 +58,10 @@ export default function TicketSelectionPage() {
           initialQty[tt.id] = 0;
         });
 
-        // Restore form draft from sessionStorage if user previously filled it
+        // Restore draft from sessionStorage if previously saved
         if (typeof window !== 'undefined') {
           try {
-            const savedDraft = sessionStorage.getItem(`cedoi_ticket_draft_${slug}`);
+            const savedDraft = sessionStorage.getItem(`cedoi_delegate_draft_${slug}`);
             if (savedDraft) {
               const parsed = JSON.parse(savedDraft);
               if (parsed.customerName) setCustomerName(parsed.customerName);
@@ -73,14 +70,22 @@ export default function TicketSelectionPage() {
               if (parsed.businessName) setBusinessName(parsed.businessName);
               if (parsed.location) setLocation(parsed.location);
               if (parsed.age) setAge(parsed.age);
+              if (parsed.foodPreference === 'VEG' || parsed.foodPreference === 'NON_VEG') {
+                setFoodPreference(parsed.foodPreference);
+              }
+              if (typeof parsed.agreedToTerms === 'boolean') {
+                setAgreedToTerms(parsed.agreedToTerms);
+              }
               if (parsed.quantities && typeof parsed.quantities === 'object') {
-                let sum = 0;
+                let selectedOne = false;
                 Object.keys(parsed.quantities).forEach((k) => {
                   if (initialQty[k] !== undefined) {
-                    const q = Math.max(0, Number(parsed.quantities[k]) || 0);
-                    const allowed = Math.min(q, 10 - sum);
-                    initialQty[k] = allowed;
-                    sum += allowed;
+                    if (!selectedOne && Number(parsed.quantities[k]) > 0) {
+                      initialQty[k] = 1;
+                      selectedOne = true;
+                    } else {
+                      initialQty[k] = 0;
+                    }
                   }
                 });
               }
@@ -90,7 +95,7 @@ export default function TicketSelectionPage() {
           }
         }
 
-        // If no draft had a selection and there is an available active ticket type, pre-select 1 ticket
+        // If no draft selection, pre-select first available active pass
         const hasSelection = Object.values(initialQty).some((q) => q > 0);
         if (!hasSelection) {
           const firstAvailable = data.ticketTypes.find(
@@ -111,7 +116,7 @@ export default function TicketSelectionPage() {
     loadEvent();
   }, [slug]);
 
-  // Auto-save form draft to sessionStorage whenever any field changes
+  // Auto-save form draft to sessionStorage
   useEffect(() => {
     if (isLoading || typeof window === 'undefined') return;
     try {
@@ -123,12 +128,10 @@ export default function TicketSelectionPage() {
         businessName,
         location,
         age,
-        memberType,
-        membershipCode,
         foodPreference,
         agreedToTerms,
       };
-      sessionStorage.setItem(`cedoi_ticket_draft_${slug}`, JSON.stringify(draft));
+      sessionStorage.setItem(`cedoi_delegate_draft_${slug}`, JSON.stringify(draft));
     } catch (e) {
       // Storage error safeguard
     }
@@ -142,37 +145,25 @@ export default function TicketSelectionPage() {
     businessName,
     location,
     age,
-    memberType,
-    membershipCode,
     foodPreference,
     agreedToTerms,
   ]);
 
-  const MAX_MEMBER_TICKETS = 10;
-
   const handleQuantityChange = (ticketTypeId: string, qty: number) => {
-    const otherTickets = Object.entries(quantities).reduce((sum, [id, q]) => {
-      return id === ticketTypeId ? sum : sum + q;
-    }, 0);
-    const maxAllowedForThis = Math.max(0, MAX_MEMBER_TICKETS - otherTickets);
-    const cappedQty = Math.min(maxAllowedForThis, Math.max(0, qty));
-
-    setQuantities((prev) => ({
-      ...prev,
+    const cappedQty = Math.min(1, Math.max(0, qty));
+    // Strictly 1 ticket per delegate registration across categories
+    setQuantities({
       [ticketTypeId]: cappedQty,
-    }));
+    });
     setErrorMessage(null);
     setTicketError(false);
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Keep only numeric characters
     let digits = e.target.value.replace(/\D/g, '');
-    // If user pastes +91 or 91 with full number, strip country code
     if (digits.startsWith('91') && digits.length > 10) {
       digits = digits.slice(2);
     }
-    // Hard-cap at exactly 10 digits
     if (digits.length > 10) {
       digits = digits.slice(0, 10);
     }
@@ -223,9 +214,9 @@ export default function TicketSelectionPage() {
       return;
     }
 
-    if (totalTickets > 10) {
+    if (totalTickets > 1) {
       setTicketError(true);
-      setErrorMessage('CEDOI members can select up to 10 passes per registration.');
+      setErrorMessage('Registration is limited to 1 pass per delegate.');
       return;
     }
 
@@ -267,35 +258,6 @@ export default function TicketSelectionPage() {
       return;
     }
 
-    // Validation for CEDOI members (Format check; authoritative whitelist validation runs on backend)
-    if (memberType === 'MEMBER') {
-      const trimmedCode = membershipCode.trim();
-      if (!trimmedCode) {
-        setMembershipCodeError('Please enter your CEDOI Membership ID or Code.');
-        setErrorMessage('CEDOI Membership ID / Code is required for member registrations.');
-        if (typeof document !== 'undefined') {
-          const elem = document.getElementById('membership-code-input');
-          if (elem) {
-            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            elem.focus();
-          }
-        }
-        return;
-      }
-      if (trimmedCode.length < 3 || trimmedCode.length > 32) {
-        setMembershipCodeError('Please enter a valid CEDOI Membership Code (3-32 characters).');
-        setErrorMessage('Please enter a valid CEDOI Membership Code.');
-        if (typeof document !== 'undefined') {
-          const elem = document.getElementById('membership-code-input');
-          if (elem) {
-            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            elem.focus();
-          }
-        }
-        return;
-      }
-    }
-
     if (!agreedToTerms) {
       setTermsError(true);
       if (typeof document !== 'undefined') {
@@ -311,9 +273,6 @@ export default function TicketSelectionPage() {
       .filter(([_, q]) => q > 0)
       .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }));
 
-    const cleanedMembershipCode =
-      memberType === 'MEMBER' ? membershipCode.trim().toUpperCase() : undefined;
-
     setIsSubmitting(true);
     try {
       const reservation = await apiClient<ReservationResponseDto>('api/v1/bookings/reserve', {
@@ -327,46 +286,26 @@ export default function TicketSelectionPage() {
           location: location.trim(),
           age: parsedAge,
           agreedToTerms: true,
-          memberType,
-          membershipCode: cleanedMembershipCode,
+          memberType: 'NON_MEMBER',
           foodPreference,
           items,
         }),
       });
 
-      // Clear saved draft upon successful reservation creation
+      // Clear draft on successful reservation
       if (typeof window !== 'undefined') {
         try {
-          sessionStorage.removeItem(`cedoi_ticket_draft_${slug}`);
+          sessionStorage.removeItem(`cedoi_delegate_draft_${slug}`);
         } catch (e) {
           // Ignore
         }
       }
 
-      // If Member, tickets and scannable QR passes are issued instantly! Direct route to pass display.
-      if (reservation.isMember || memberType === 'MEMBER') {
-        router.push(`/booking/${reservation.bookingNumber}/success`);
-      } else {
-        // Non-members proceed to Review & Online Payment
-        router.push(`/booking/${reservation.bookingNumber}`);
-      }
+      // Non-members proceed to Review & UPI Payment step
+      router.push(`/booking/${reservation.bookingNumber}`);
     } catch (err: any) {
       const msg = err.message || 'Failed to reserve tickets. Please check availability and try again.';
       setErrorMessage(msg);
-      if (
-        msg.toLowerCase().includes('membership') ||
-        err.code === 'INVALID_MEMBERSHIP_CODE' ||
-        err.code === 'MISSING_MEMBERSHIP_CODE'
-      ) {
-        setMembershipCodeError(msg);
-        if (typeof document !== 'undefined') {
-          const elem = document.getElementById('membership-code-input');
-          if (elem) {
-            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            elem.focus();
-          }
-        }
-      }
       setIsSubmitting(false);
     }
   };
@@ -402,31 +341,31 @@ export default function TicketSelectionPage() {
         <StepIndicator currentStep={1} />
 
         <div className="text-center max-w-2xl mx-auto mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-[#08537B] text-xs font-bold uppercase tracking-wider mb-2">
-            <Award className="w-3.5 h-3.5" />
-            <span>CEDOI Member Registration</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/80 text-slate-800 text-xs font-bold uppercase tracking-wider mb-2">
+            <Briefcase className="w-3.5 h-3.5 text-[#08537B]" />
+            <span>Non-Member & Guest Delegate Pass</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Reserve Member Passes
+            Guest Delegate Registration
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500">
             {event.name} • {event.venue || 'Velammal Ida Scudder Auditorium, Madurai'}
           </p>
         </div>
 
-        {/* Notice for Non-Members */}
-        <div className="mb-6 p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2.5 text-amber-900">
-            <Briefcase className="w-4 h-4 text-amber-600 shrink-0" />
+        {/* Notice for CEDOI Members */}
+        <div className="mb-6 p-4 rounded-2xl bg-blue-50/90 border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5 text-blue-900">
+            <Award className="w-4 h-4 text-[#08537B] shrink-0" />
             <span>
-              <strong>Not a CEDOI Member?</strong> Visiting founders, entrepreneurs, and guest delegates should use the Non-Member Pass portal.
+              <strong>Are you a CEDOI Organization Member?</strong> Verified members can reserve up to 10 passes through the exclusive Member Portal.
             </span>
           </div>
           <Link
-            href={`/events/${slug}/delegate`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shrink-0 whitespace-nowrap shadow-xs transition"
+            href={`/events/${slug}/tickets`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#08537B] hover:bg-[#064364] text-white font-bold rounded-lg shrink-0 whitespace-nowrap shadow-xs transition"
           >
-            <span>Non-Member Registration</span>
+            <span>CEDOI Member Portal</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -443,7 +382,7 @@ export default function TicketSelectionPage() {
           <div id="ticket-selection-section" className="space-y-4 scroll-mt-24">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <span>1. Choose Member Passes (Up to 10)</span>
+                <span>1. Choose Your Admission Pass</span>
                 <span className="text-red-500">*</span>
               </h2>
               <span
@@ -453,9 +392,7 @@ export default function TicketSelectionPage() {
                     : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {totalTickets > 0
-                  ? `${totalTickets} ${totalTickets === 1 ? 'Pass' : 'Passes'} Selected (Max 10)`
-                  : 'Up to 10 Passes'}
+                {totalTickets > 0 ? '1 Pass Selected' : 'No Pass Selected'}
               </span>
             </div>
 
@@ -472,21 +409,21 @@ export default function TicketSelectionPage() {
                   key={tt.id}
                   ticketType={tt}
                   quantity={quantities[tt.id] || 0}
-                  maxQuantity={10}
+                  maxQuantity={1}
                   onQuantityChange={(q) => handleQuantityChange(tt.id, q)}
                 />
               ))}
             </div>
           </div>
 
-          {/* Customer & Attendee Details Form */}
+          {/* Attendee Details Form */}
           <div className="bg-white rounded-[18px] p-6 border border-slate-200 shadow-sm space-y-6">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                2. Attendee & Delegate Registration Details
+                2. Delegate Accreditation & Contact Information
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Information used for delegate accreditation, custom event badges, and banquet catering arrangements.
+                Details used for personalized badge printing, SMS event access pass, and gourmet catering arrangements.
               </p>
             </div>
 
@@ -506,27 +443,32 @@ export default function TicketSelectionPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Mobile Number <span className="text-red-500">*</span>
-                </label>
-                <div className="relative flex items-center">
-                  <div className="absolute left-0 inset-y-0 flex items-center pl-3 pr-2.5 border-r border-slate-200 bg-slate-50 rounded-l-[10px] text-xs font-bold text-slate-600 select-none pointer-events-none">
-                    +91
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    WhatsApp Mobile Number <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                    Indian (+91)
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-sm font-semibold text-slate-500 select-none">
+                    <span>+91</span>
+                    <span className="text-slate-300">|</span>
                   </div>
                   <input
                     type="tel"
                     inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={10}
                     required
-                    placeholder="Enter 10-digit mobile number"
+                    placeholder="9876543210"
+                    maxLength={10}
                     value={customerPhone}
                     onChange={handlePhoneChange}
-                    className="w-full h-11 pl-14 pr-3.5 rounded-[10px] border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
+                    className="w-full h-11 pl-14 pr-3.5 rounded-[10px] border border-slate-300 text-sm font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#08537B]/20 focus:border-[#08537B]"
                   />
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                  <span>Used for SMS updates & ticket recovery.</span>
+                  <span>Used for WhatsApp ticket delivery & QR recovery.</span>
                   <span className={`font-mono font-medium ${customerPhone.length === 10 ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>
                     {customerPhone.length}/10
                   </span>
@@ -620,59 +562,6 @@ export default function TicketSelectionPage() {
                     Only delegates aged 18 and above are accepted.
                   </span>
                 )}
-              </div>
-            </div>
-
-            {/* Membership ID Input for CEDOI Members */}
-            <div className="pt-3 border-t border-slate-100">
-              <div
-                id="membership-code-section"
-                className="p-4 rounded-[14px] bg-blue-50/70 border-2 border-blue-200"
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <label
-                    htmlFor="membership-code-input"
-                    className="block text-xs font-bold text-[#08537B] uppercase tracking-wider"
-                  >
-                    CEDOI Membership ID / Member Code <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-[#08537B] border border-blue-200">
-                    Required for Member Passes
-                  </span>
-                </div>
-                <div className="relative">
-                  <input
-                    id="membership-code-input"
-                    type="text"
-                    required
-                    maxLength={32}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    placeholder="Enter your CEDOI Member Code (e.g. CEDOI0014)"
-                    value={membershipCode}
-                    onChange={(e) => {
-                      setMembershipCode(e.target.value.toUpperCase());
-                      setMembershipCodeError(null);
-                      setErrorMessage(null);
-                    }}
-                    className={`w-full h-11 pl-10 pr-3.5 rounded-[10px] border text-sm font-mono uppercase text-slate-900 bg-white placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                      membershipCodeError
-                        ? 'border-rose-400 bg-rose-50/30 focus:ring-rose-200 focus:border-rose-500'
-                        : 'border-blue-300 focus:ring-[#08537B]/20 focus:border-[#08537B]'
-                    }`}
-                  />
-                  <Award className="w-4 h-4 text-[#08537B] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                </div>
-                {membershipCodeError && (
-                  <p className="text-[11px] font-semibold text-rose-600 mt-1.5 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{membershipCodeError}</span>
-                  </p>
-                )}
-                <span className="text-[11px] text-slate-500 mt-1.5 block">
-                  Only verified CEDOI Members are eligible. Members can reserve up to 10 passes for their delegation.
-                </span>
               </div>
             </div>
 
@@ -773,7 +662,7 @@ export default function TicketSelectionPage() {
                 }`}
               />
               <span className="text-xs sm:text-sm text-slate-700 font-medium">
-                I confirm that all delegates are above 18 years of age and agree to the{' '}
+                I confirm that I am above 18 years of age and agree to the{' '}
                 <Link
                   href="/terms"
                   target="_blank"
@@ -799,21 +688,18 @@ export default function TicketSelectionPage() {
                 <div>
                   <div className="text-xs text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5" />
-                    <span>No Tickets Selected</span>
+                    <span>No Pass Selected</span>
                   </div>
                   <div className="text-xs text-[#D5EBF7] mt-0.5">
-                    Select at least 1 pass category above to proceed to review.
+                    Select 1 pass category above to proceed to review and UPI payment.
                   </div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-xs text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>CEDOI Member Registration ({totalTickets} {totalTickets === 1 ? 'admission' : 'admissions'})</span>
+                  <div className="text-xs text-[#D5EBF7] font-semibold uppercase tracking-wider">
+                    Total Pass Amount ({totalTickets} delegate)
                   </div>
-                  <div className="text-xs text-[#D5EBF7] mt-0.5">
-                    Total Value: {formatPaise(totalPaise)} • Direct Pass Issuance & QR Generation
-                  </div>
+                  <div className="text-2xl font-black">{formatPaise(totalPaise)}</div>
                 </div>
               )}
             </div>
@@ -830,16 +716,16 @@ export default function TicketSelectionPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Issuing Member Passes...</span>
+                  <span>Reserving Your Seat...</span>
                 </>
               ) : totalTickets === 0 ? (
                 <>
-                  <span>Select Tickets to Continue</span>
+                  <span>Select Pass to Continue</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               ) : (
                 <>
-                  <span>Confirm Registration & Get Passes ({totalTickets})</span>
+                  <span>Proceed to Review & UPI Payment</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
