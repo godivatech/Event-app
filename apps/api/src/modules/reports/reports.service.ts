@@ -256,7 +256,7 @@ export class ReportsService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: any) => {
       // 1. Consume reservation if it exists
       if (booking.reservation) {
         await tx.reservation.update({
