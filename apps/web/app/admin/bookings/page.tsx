@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
-import { formatPaise, formatDate, formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge } from '@cedoi/ui';
+import { formatPaise, formatDate, formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge, WhatsAppIcon } from '@cedoi/ui';
 import {
   Search,
   Filter,
@@ -20,7 +20,6 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  MessageSquare,
   Copy,
   ExternalLink,
   Check,
@@ -534,7 +533,7 @@ export default function AdminBookingsPage() {
                               className="h-8 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 transition shadow-xs"
                               title="Send UPI Payment Details on WhatsApp"
                             >
-                              <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                              <WhatsAppIcon className="w-3.5 h-3.5 text-amber-700" />
                               <span>Remind</span>
                             </a>
                           </>
@@ -546,7 +545,7 @@ export default function AdminBookingsPage() {
                             className="h-8 px-2.5 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1caa51] text-white text-xs font-bold whitespace-nowrap inline-flex items-center gap-1.5 transition shadow-xs"
                             title="Send Ticket Pass directly to Delegate on WhatsApp"
                           >
-                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
                             <span>WhatsApp Ticket</span>
                           </a>
                         )}
@@ -643,7 +642,7 @@ export default function AdminBookingsPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold shadow-xs transition"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                    <WhatsAppIcon className="w-3.5 h-3.5 text-amber-700" />
                     <span>Send UPI Reminder</span>
                   </a>
                   <button
@@ -684,7 +683,7 @@ export default function AdminBookingsPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-bold shadow-xs transition"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                    <WhatsAppIcon className="w-3.5 h-3.5" />
                     <span>WhatsApp Ticket</span>
                   </a>
                   <button
@@ -924,7 +923,7 @@ export default function AdminBookingsPage() {
                 onClick={() => setJustPaidBooking(null)}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-sm shadow-md transition"
               >
-                <MessageSquare className="w-4 h-4 fill-current" />
+                <WhatsAppIcon className="w-4 h-4" />
                 <span>Send Ticket via WhatsApp Now</span>
               </a>
               <button

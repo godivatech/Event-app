@@ -17,3 +17,4 @@ export * from './components/StatCard';
 export * from './components/Skeleton';
 export * from './components/FoodPreferenceBadge';
 export * from './components/MemberTypeBadge';
+export * from './components/WhatsAppIcon';

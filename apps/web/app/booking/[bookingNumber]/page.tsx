@@ -9,7 +9,7 @@ import { StepIndicator } from '../../../components/booking/StepIndicator';
 import { apiClient } from '../../../lib/api-client';
 import { BookingDetailDto } from '@cedoi/contracts';
 import { formatPaise, formatEventDate } from '../../../lib/formatters';
-import { FoodPreferenceBadge, MemberTypeBadge } from '@cedoi/ui';
+import { FoodPreferenceBadge, MemberTypeBadge, WhatsAppIcon } from '@cedoi/ui';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   ArrowLeft,
@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Loader2,
   Copy,
-  MessageSquare,
   QrCode,
   Smartphone,
   CheckCircle2,
@@ -451,7 +450,7 @@ export default function BookingReviewAndPaymentPage() {
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1caa51] text-white font-extrabold text-sm shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
                 >
-                  <MessageSquare className="w-5 h-5 fill-current" />
+                  <WhatsAppIcon className="w-5 h-5" />
                   <span>Share Payment Receipt on WhatsApp</span>
                   <ExternalLink className="w-3.5 h-3.5 opacity-80" />
                 </a>

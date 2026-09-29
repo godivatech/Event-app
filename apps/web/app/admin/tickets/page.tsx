@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
-import { formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge } from '@cedoi/ui';
+import { formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge, WhatsAppIcon } from '@cedoi/ui';
 import {
   Ticket as TicketIcon,
   Search,
@@ -15,7 +15,6 @@ import {
   ExternalLink,
   ShieldAlert,
   RefreshCw,
-  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -321,7 +320,7 @@ export default function AdminTicketsPage() {
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition shadow-xs"
                             title="Send Ticket via WhatsApp"
                           >
-                            <MessageSquare className="w-3.5 h-3.5 fill-current" />
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
                             <span>WhatsApp</span>
                           </a>
                           <a
