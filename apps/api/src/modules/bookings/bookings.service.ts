@@ -83,73 +83,7 @@ export class BookingsService {
       });
     }
 
-    // Validate membership code for CEDOI Members (Strict Whitelist + Security Hardening)
-    const validMemberCodes = (
-      process.env.VALID_MEMBERSHIP_CODES?.split(',') || ['CEDOI0014']
-    ).map((c) => c.trim().toUpperCase());
 
-    if (isMember) {
-      // Brute-force rate limit protection (max 5 failed attempts per phone/session within 10 mins)
-      const rateLimitKey = `memcode:${normalizedPhone}`;
-      const now = Date.now();
-      const attemptEntry = this.recoveryAttempts.get(rateLimitKey);
-      if (attemptEntry && attemptEntry.lockedUntil > now) {
-        const waitMinutes = Math.ceil((attemptEntry.lockedUntil - now) / 60000);
-        this.logger.warn(`[Security Lockout] Membership code attempt blocked due to rate limit for phone: ${normalizedPhone}`);
-        throw new BadRequestException({
-          code: 'TOO_MANY_FAILED_ATTEMPTS',
-          message: `Too many invalid membership code attempts. For security, please wait ${waitMinutes} minute(s) before trying again or select Non-Member Delegate.`,
-        });
-      }
-
-      const rawCode = membershipCode ? membershipCode.trim() : '';
-      if (!rawCode) {
-        throw new BadRequestException({
-          code: 'MISSING_MEMBERSHIP_CODE',
-          message: 'CEDOI Membership Code is required for member registrations.',
-        });
-      }
-
-      // Security validation: Strict length and alphanumeric format constraints
-      if (rawCode.length < 3 || rawCode.length > 32 || !/^[A-Za-z0-9_-]+$/.test(rawCode)) {
-        this.logger.warn(`[Security Alert] Malformed membership code format: "${rawCode.slice(0, 10)}" from phone: ${normalizedPhone}`);
-        throw new BadRequestException({
-          code: 'INVALID_MEMBERSHIP_CODE',
-          message: 'Invalid CEDOI Membership Code format. Only authorized alphanumeric member codes are accepted.',
-        });
-      }
-
-      const normalizedCode = rawCode.toUpperCase();
-      // Side-channel timing attack safe comparison
-      const isAuthorized = validMemberCodes.some((authorizedCode) =>
-        CryptoUtil.secureCompare(normalizedCode, authorizedCode)
-      );
-
-      if (!isAuthorized) {
-        // Increment failed attempts for anti-brute-force defense
-        const currentFailures = (attemptEntry?.count || 0) + 1;
-        if (currentFailures >= 5) {
-          this.recoveryAttempts.set(rateLimitKey, {
-            count: currentFailures,
-            lockedUntil: now + 10 * 60 * 1000, // 10 minute lock
-          });
-        } else {
-          this.recoveryAttempts.set(rateLimitKey, {
-            count: currentFailures,
-            lockedUntil: now,
-          });
-        }
-
-        this.logger.warn(`[Security Warning] Unauthorized membership code attempt (${currentFailures}/5): "${normalizedCode.slice(0, 3)}***" for phone: ${normalizedPhone}`);
-        throw new BadRequestException({
-          code: 'INVALID_MEMBERSHIP_CODE',
-          message: 'Invalid CEDOI Membership Code. Only authorized member codes are accepted.',
-        });
-      }
-
-      // Clear failed attempts upon successful verification
-      this.recoveryAttempts.delete(rateLimitKey);
-    }
 
     // Age requirement validation (Strictly 18+)
     if (dto.age === undefined || dto.age === null || String(dto.age).trim() === '') {
