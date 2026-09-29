@@ -361,22 +361,7 @@ export default function TicketSelectionPage() {
           </p>
         </div>
 
-        {/* Notice for Non-Members */}
-        <div className="mb-6 p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2.5 text-amber-900">
-            <Briefcase className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              <strong>Not a CEDOI Member?</strong> Visiting founders, entrepreneurs, and guest delegates should use the Non-Member Pass portal.
-            </span>
-          </div>
-          <Link
-            href={`/events/${slug}/delegate`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shrink-0 whitespace-nowrap shadow-xs transition"
-          >
-            <span>Non-Member Registration</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+
 
         {errorMessage && (
           <div className="mb-6 p-4 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-2">

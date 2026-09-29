@@ -353,22 +353,7 @@ export default function NonMemberDelegatePage() {
           </p>
         </div>
 
-        {/* Notice for CEDOI Members */}
-        <div className="mb-6 p-4 rounded-2xl bg-blue-50/90 border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2.5 text-blue-900">
-            <Award className="w-4 h-4 text-[#08537B] shrink-0" />
-            <span>
-              <strong>Are you a CEDOI Organization Member?</strong> Verified members can reserve up to 10 passes through the exclusive Member Portal.
-            </span>
-          </div>
-          <Link
-            href={`/events/${slug}/tickets`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#08537B] hover:bg-[#064364] text-white font-bold rounded-lg shrink-0 whitespace-nowrap shadow-xs transition"
-          >
-            <span>CEDOI Member Portal</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+
 
         {errorMessage && (
           <div className="mb-6 p-4 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center gap-2">
