@@ -42,7 +42,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link href="/terms" className="hover:text-gray-900 transition-colors">
-                  Terms of Admission (18+)
+                  Terms of Admission
                 </Link>
               </li>
               <li>
