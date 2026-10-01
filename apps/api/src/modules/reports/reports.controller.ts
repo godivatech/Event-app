@@ -2,9 +2,11 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Query,
   Param,
   Res,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
@@ -13,7 +15,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole, BookingStatus, TicketStatus } from '@prisma/client';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 
 @Controller('v1/admin')
 @UseGuards(AuthGuard, RolesGuard)
@@ -53,6 +55,21 @@ export class ReportsController {
     @CurrentUser() staff: any
   ) {
     return this.reportsService.markMemberBookingPaid(bookingId, staff?.id || 'admin');
+  }
+
+  @Delete('bookings/:bookingId')
+  @Roles(UserRole.SUPER_ADMIN)
+  async deleteBooking(
+    @Param('bookingId') bookingId: string,
+    @CurrentUser() staff: any,
+    @Req() req: Request
+  ) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress;
+    return this.reportsService.deleteBookingPermanently(
+      bookingId,
+      staff?.id || 'super_admin',
+      ipAddress
+    );
   }
 
   @Get('payments')

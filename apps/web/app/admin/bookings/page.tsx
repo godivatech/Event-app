@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
+import { useAutoRefresh, notifyDataUpdated } from '../../../lib/use-auto-refresh';
 import { formatPaise, formatDate, formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge, WhatsAppIcon } from '@cedoi/ui';
 import {
   Search,
@@ -23,6 +24,7 @@ import {
   Copy,
   ExternalLink,
   Check,
+  Trash2,
 } from 'lucide-react';
 
 interface BookingItem {
@@ -104,6 +106,75 @@ export default function AdminBookingsPage() {
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [justPaidBooking, setJustPaidBooking] = useState<AdminBooking | null>(null);
   const [copiedBookingNumber, setCopiedBookingNumber] = useState<string | null>(null);
+
+  // Developer Role & Delete Action State
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [bookingToDelete, setBookingToDelete] = useState<AdminBooking | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiClient<any>('api/v1/auth/me')
+      .then((profile) => setCurrentUserRole(profile?.role || null))
+      .catch(() => setCurrentUserRole(null));
+  }, []);
+
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  const handleConfirmDelete = async () => {
+    if (!bookingToDelete) return;
+    const targetId = bookingToDelete.id;
+    const deletedNumber = bookingToDelete.bookingNumber;
+    const previousBookings = [...bookings];
+    const previousTotal = totalCount;
+
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    // 1. Instantly remove row from current UI list in 0ms
+    setBookings((prev) => prev.filter((b) => b.id !== targetId));
+    setTotalCount((prev) => Math.max(0, prev - 1));
+
+    // 2. Close inspect modal if open for this deleted booking
+    if (selectedBooking && selectedBooking.id === targetId) {
+      setSelectedBooking(null);
+    }
+
+    try {
+      await apiClient<any>(`api/v1/admin/bookings/${targetId}`, {
+        method: 'DELETE',
+      });
+
+      // 3. Dismiss delete modal
+      setBookingToDelete(null);
+
+      // 4. Show success notification
+      setActionMessage({
+        type: 'success',
+        text: `Booking ${deletedNumber} was permanently deleted from database.`,
+      });
+
+      // 5. Handle pagination: step back if last item on page 2+ was deleted
+      let nextPage = page;
+      if (bookings.length <= 1 && page > 1) {
+        nextPage = page - 1;
+        setPage(nextPage);
+      }
+
+      // 6. Broadcast event so Dashboard, Tickets, Payments, and other tabs update dynamically
+      notifyDataUpdated('booking-deleted');
+
+      // 7. Silent background fetch to re-align full server pagination without flicker
+      await fetchBookings(nextPage, true);
+    } catch (err: any) {
+      // Revert optimistic state on failure
+      setBookings(previousBookings);
+      setTotalCount(previousTotal);
+      setDeleteError(err.message || 'Failed to delete booking.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const getCleanPhone = (phone: string) => {
     let cleaned = (phone || '').replace(/[^0-9]/g, '');
@@ -200,7 +271,8 @@ export default function AdminBookingsPage() {
         type: 'success',
         text: 'Payment status marked as PAID & Tickets successfully generated.',
       });
-      fetchBookings();
+      notifyDataUpdated('booking-paid');
+      fetchBookings(undefined, true);
     } catch (err: any) {
       setActionMessage({
         type: 'error',
@@ -211,12 +283,17 @@ export default function AdminBookingsPage() {
     }
   };
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = useCallback(async (overridePage?: number, isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError(null);
     try {
+      const activePage = overridePage !== undefined ? overridePage : page;
       const query = new URLSearchParams({
-        page: page.toString(),
+        page: activePage.toString(),
         limit: '15',
         ...(search ? { search } : {}),
         ...(statusFilter ? { status: statusFilter } : {}),
@@ -233,20 +310,31 @@ export default function AdminBookingsPage() {
         router.replace('/admin/login');
         return;
       }
-      setError(err.message || 'Failed to load bookings from database.');
+      if (!isSilent) {
+        setError(err.message || 'Failed to load bookings from database.');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
-  };
+  }, [page, search, statusFilter, memberFilter, foodFilter, router]);
 
   useEffect(() => {
     fetchBookings();
-  }, [page, statusFilter, memberFilter, foodFilter]);
+  }, [fetchBookings]);
+
+  // Real-time dynamic auto-refresh on cross-tab events, window focus, and 15s live polling
+  useAutoRefresh(() => {
+    fetchBookings(undefined, true);
+  }, { intervalMs: 15000 });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchBookings();
+    fetchBookings(1);
   };
 
   const handleProcessRefund = async () => {
@@ -269,7 +357,8 @@ export default function AdminBookingsPage() {
       setRefundSuccess(
         `Full refund of ${formatPaise(selectedBooking.totalPaise ?? selectedBooking.totalAmountPaise ?? 0)} processed successfully. Associated tickets have been invalidated.`
       );
-      fetchBookings();
+      notifyDataUpdated('booking-refunded');
+      fetchBookings(undefined, true);
     } catch (err: any) {
       setRefundError(err.message || 'Refund processing failed.');
     } finally {
@@ -282,9 +371,16 @@ export default function AdminBookingsPage() {
       {/* Header & Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            Bookings & Reservations
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              Bookings & Reservations
+            </h1>
+            {currentUserRole === 'SUPER_ADMIN' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-xs" title="Developer Privileges Active (Delete enabled)">
+                🛠️ Developer Mode
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 mt-1">
             Total of {totalCount} reservations tracked across all customer channels
           </p>
@@ -430,7 +526,7 @@ export default function AdminBookingsPage() {
                       <span className="font-bold text-sm">Failed to Load Bookings</span>
                       <span className="text-red-700">{error}</span>
                       <button
-                        onClick={fetchBookings}
+                        onClick={() => fetchBookings()}
                         className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-red-100 text-red-800 border border-red-300 rounded-xl font-bold text-xs transition shadow-xs"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
@@ -563,6 +659,20 @@ export default function AdminBookingsPage() {
                           <Eye className="w-3.5 h-3.5 text-[#08537B] shrink-0" />
                           <span>Inspect</span>
                         </button>
+
+                        {currentUserRole === 'SUPER_ADMIN' && (
+                          <button
+                            onClick={() => {
+                              setBookingToDelete(b);
+                              setDeleteError(null);
+                            }}
+                            className="h-8 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 transition shadow-xs cursor-pointer"
+                            title="Delete Booking (Developer Only)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -886,6 +996,32 @@ export default function AdminBookingsPage() {
               </div>
             )}
 
+            {/* Inspect Modal Footer with Developer Delete Action */}
+            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+              <div>
+                {currentUserRole === 'SUPER_ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookingToDelete(selectedBooking);
+                      setDeleteError(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+                    title="Delete this booking permanently from database"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                    <span>Delete Booking (Developer)</span>
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBooking(null)}
+                className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -932,6 +1068,74 @@ export default function AdminBookingsPage() {
                 className="w-full py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-xs font-semibold transition"
               >
                 Done (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permanent Delete Confirmation Modal for Developer */}
+      {bookingToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Delete Booking Permanently?</h3>
+                <p className="text-xs text-gray-500">Developer Root Operation</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Are you sure you want to permanently delete booking{' '}
+              <strong className="text-gray-900 font-mono">{bookingToDelete.bookingNumber}</strong> for{' '}
+              <strong className="text-gray-900">{bookingToDelete.customerName}</strong>?
+            </p>
+
+            <div className="p-3 bg-red-50/60 border border-red-200 rounded-xl text-xs space-y-1 text-red-800">
+              <p className="font-semibold text-red-900">This action will automatically:</p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-red-700">
+                <li>Revoke all generated passes and QR codes</li>
+                <li>Remove associated check-in scan records</li>
+                <li>Delete generated PDF ticket file from disk</li>
+                <li>Reallocate seat capacity back to event inventory</li>
+              </ul>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setBookingToDelete(null)}
+                disabled={deleteLoading}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleteLoading}
+                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+              >
+                {deleteLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Yes, Delete Booking</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

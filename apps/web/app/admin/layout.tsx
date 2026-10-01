@@ -279,7 +279,7 @@ export default function AdminLayout({
                   {staff?.name || 'Administrator'}
                 </p>
                 <p className="text-[10px] text-gray-500 font-medium">
-                  {staff?.role}
+                  {staff?.role === 'SUPER_ADMIN' ? 'Developer (SUPER_ADMIN)' : staff?.role}
                 </p>
               </div>
             </div>
@@ -316,7 +316,9 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-700">
               <Shield className="w-3.5 h-3.5 text-[#08537B]" />
-              <span className="font-semibold">{staff?.role}</span>
+              <span className="font-semibold">
+                {staff?.role === 'SUPER_ADMIN' ? 'Developer (SUPER_ADMIN)' : staff?.role}
+              </span>
             </div>
             <button
               onClick={handleLogout}

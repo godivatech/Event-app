@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
+import { useAutoRefresh } from '../../../lib/use-auto-refresh';
 import { formatPaise, formatDateTime, StatusBadge, SkeletonTableRows } from '@cedoi/ui';
 import {
   CreditCard,
@@ -31,13 +32,15 @@ export default function AdminPaymentsPage() {
   const router = useRouter();
   const [attempts, setAttempts] = useState<PaymentAttempt[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalAttempts, setTotalAttempts] = useState<number>(0);
 
-  const fetchPayments = async () => {
-    setLoading(true);
+  const fetchPayments = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setIsRefreshing(true);
     setError(null);
     try {
       const res = await apiClient<any>(`api/v1/admin/payments?page=${page}&limit=15`, { timeoutMs: 12000 });
@@ -49,15 +52,23 @@ export default function AdminPaymentsPage() {
         router.replace('/admin/login');
         return;
       }
-      setError(err.message || 'Failed to load payments ledger from database.');
+      if (!isSilent) {
+        setError(err.message || 'Failed to load payments ledger from database.');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      else setIsRefreshing(false);
     }
-  };
+  }, [page, router]);
 
   useEffect(() => {
     fetchPayments();
-  }, [page]);
+  }, [fetchPayments]);
+
+  // Real-time dynamic auto-refresh on cross-tab events, window focus, and 20s live polling
+  useAutoRefresh(() => {
+    fetchPayments(true);
+  }, { intervalMs: 20000 });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -77,15 +88,6 @@ export default function AdminPaymentsPage() {
             Reconciliation ledger of online payment attempts, Cashfree transaction IDs, and settlement statuses
           </p>
         </div>
-
-        <button
-          onClick={fetchPayments}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 border border-gray-300 shadow-xs transition"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
       </div>
 
       {/* Main Attempts Ledger */}
@@ -124,7 +126,7 @@ export default function AdminPaymentsPage() {
                     <div className="space-y-2">
                       <p>{error}</p>
                       <button
-                        onClick={fetchPayments}
+                        onClick={() => fetchPayments(false)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />

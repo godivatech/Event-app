@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
+import { useAutoRefresh } from '../../../lib/use-auto-refresh';
 import { AdminDashboardMetricsDto } from '@cedoi/contracts';
 import { formatPaise, VegVectorIcon, NonVegVectorIcon } from '@cedoi/ui';
 import {
@@ -28,8 +29,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMetrics = async () => {
-    setLoading(true);
+  const fetchMetrics = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError(null);
     try {
       const data = await apiClient<AdminDashboardMetricsDto>('api/v1/admin/metrics', { timeoutMs: 12000 });
@@ -39,15 +40,22 @@ export default function AdminDashboardPage() {
         router.replace('/admin/login');
         return;
       }
-      setError(err.message || 'Failed to load authoritative metrics from database.');
+      if (!isSilent) {
+        setError(err.message || 'Failed to load authoritative metrics from database.');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, [fetchMetrics]);
+
+  // Real-time dynamic auto-refresh on cross-tab events, window focus, and 15s live polling
+  useAutoRefresh(() => {
+    fetchMetrics(true);
+  }, { intervalMs: 15000 });
 
   if (loading && !metrics) {
     return (
@@ -74,7 +82,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         <button
-          onClick={fetchMetrics}
+          onClick={() => fetchMetrics(false)}
           className="mt-4 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-semibold transition"
         >
           Retry Calculation
@@ -102,24 +110,13 @@ export default function AdminDashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               Event Command Center
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Live Database Feed
-            </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Real-time authoritative aggregates from PostgreSQL 18 with row-level reservation guarantees.
+            Authoritative aggregates from PostgreSQL 18 with row-level reservation guarantees.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={fetchMetrics}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 border border-gray-300 shadow-xs transition"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
           <Link
             href="/admin/reports"
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#08537B] hover:bg-[#074769] text-xs font-semibold text-white shadow-xs transition"

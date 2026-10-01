@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
+import { useAutoRefresh } from '../../../lib/use-auto-refresh';
 import { formatDateTime, StatusBadge, SkeletonTableRows, FoodPreferenceBadge, MemberTypeBadge, WhatsAppIcon } from '@cedoi/ui';
 import {
   Ticket as TicketIcon,
@@ -60,6 +61,7 @@ export default function AdminTicketsPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -69,8 +71,9 @@ export default function AdminTicketsPage() {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setIsRefreshing(true);
     setError(null);
     try {
       const query = new URLSearchParams({
@@ -91,15 +94,23 @@ export default function AdminTicketsPage() {
         router.replace('/admin/login');
         return;
       }
-      setError(err.message || 'Failed to load tickets from database.');
+      if (!isSilent) {
+        setError(err.message || 'Failed to load tickets from database.');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      else setIsRefreshing(false);
     }
-  };
+  }, [page, search, statusFilter, memberFilter, foodFilter, router]);
 
   useEffect(() => {
     fetchTickets();
-  }, [page, statusFilter, memberFilter, foodFilter]);
+  }, [fetchTickets]);
+
+  // Real-time dynamic auto-refresh on cross-tab events, window focus, and 20s live polling
+  useAutoRefresh(() => {
+    fetchTickets(true);
+  }, { intervalMs: 20000 });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,7 +245,7 @@ export default function AdminTicketsPage() {
                       <span className="font-bold text-sm">Failed to Load Tickets</span>
                       <span className="text-red-700">{error}</span>
                       <button
-                        onClick={fetchTickets}
+                        onClick={() => fetchTickets(false)}
                         className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-red-100 text-red-800 border border-red-300 rounded-xl font-bold text-xs transition shadow-xs"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />

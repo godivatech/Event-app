@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   TicketStatus,
@@ -558,4 +560,137 @@ export class ReportsService {
 
     return csvContent;
   }
+
+  /**
+   * Permanently and cleanly deletes a booking and all cascaded artifacts across the system.
+   * Handles:
+   * 1. Physical PDF ticket files on disk
+   * 2. Gate check-in records (CheckIn)
+   * 3. Issued admission passes (Ticket)
+   * 4. Refunds & payment attempts (Refund, PaymentAttempt)
+   * 5. Held reservations & cart items (ReservationItem, Reservation, BookingItem)
+   * 6. PDF artifacts & ticket access sessions (PdfArtifact, TicketAccessSession)
+   * 7. Purges any pending background outbox jobs for this bookingId
+   * 8. Records a forensic audit snapshot in AuditLog
+   * 9. Frees up capacity automatically in dynamic queries
+   */
+  async deleteBookingPermanently(bookingId: string, actorId: string, ipAddress?: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        tickets: {
+          select: { id: true, ticketNumber: true },
+        },
+        pdfArtifact: true,
+        items: {
+          include: { ticketType: true },
+        },
+        paymentAttempts: true,
+        refunds: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException(`Booking with ID "${bookingId}" not found.`);
+    }
+
+    const ticketIds = booking.tickets.map((t) => t.id);
+
+    // 1. Unlink physical PDF file from disk
+    const rawStorageDir = process.env.PDF_STORAGE_DIR || 'storage/pdfs';
+    const storageDir = path.isAbsolute(rawStorageDir)
+      ? rawStorageDir
+      : path.resolve(process.cwd(), rawStorageDir);
+
+    const candidates = [
+      booking.pdfArtifact?.filePath,
+      path.join(storageDir, `CEDOI_${booking.bookingNumber}_Tickets.pdf`),
+      path.join(storageDir, `CEDOI_${booking.bookingNumber}_Ticket.pdf`),
+    ].filter(Boolean) as string[];
+
+    for (const filePath of candidates) {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.warn(`Could not unlink PDF file "${filePath}":`, err);
+      }
+    }
+
+    // 2. Remove any pending Outbox jobs targeting this booking
+    try {
+      await this.prisma.$executeRaw`
+        DELETE FROM "OutboxJob"
+        WHERE payload->>'bookingId' = ${booking.id}
+      `;
+    } catch {
+      // Non-critical if table empty or format differs
+    }
+
+    // 3. Multi-table transactional cascade delete in precise foreign-key safe order
+    await this.prisma.$transaction(
+      async (tx) => {
+        // 3a. Remove Gate Check-Ins for all tickets in this booking
+        if (ticketIds.length > 0) {
+          await tx.checkIn.deleteMany({
+            where: { ticketId: { in: ticketIds } },
+          });
+        }
+
+        // 3b. Remove Tickets (since onDelete is Restrict)
+        if (ticketIds.length > 0) {
+          await tx.ticket.deleteMany({
+            where: { id: { in: ticketIds } },
+          });
+        }
+
+        // 3c. Remove Refunds (since onDelete is Restrict)
+        await tx.refund.deleteMany({
+          where: { bookingId: booking.id },
+        });
+
+        // 3d. Delete the Booking itself
+        // (Automatically cascades to: BookingItem, Reservation, ReservationItem, PaymentAttempt, PdfArtifact, TicketAccessSession)
+        await tx.booking.delete({
+          where: { id: booking.id },
+        });
+
+        // 3e. Write to AuditLog for forensic audit
+        await tx.auditLog.create({
+          data: {
+            actorId,
+            actorType: 'SUPER_ADMIN',
+            action: 'BOOKING_PERMANENTLY_DELETED',
+            entityType: 'Booking',
+            entityId: booking.id,
+            eventId: booking.eventId,
+            ipAddress: ipAddress || null,
+            metadata: {
+              bookingNumber: booking.bookingNumber,
+              customerName: booking.customerName,
+              customerPhone: booking.customerPhone,
+              customerEmail: booking.customerEmail,
+              totalPaise: booking.totalPaise,
+              paymentStatus: booking.paymentStatus,
+              memberType: booking.memberType,
+              ticketsCount: booking.tickets.length,
+              deletedAt: new Date().toISOString(),
+            },
+          },
+        });
+      },
+      {
+        maxWait: 15000,
+        timeout: 30000,
+      }
+    );
+
+    return {
+      success: true,
+      bookingNumber: booking.bookingNumber,
+      message: `Booking ${booking.bookingNumber} deleted cleanly and all resources freed.`,
+    };
+  }
 }
+
